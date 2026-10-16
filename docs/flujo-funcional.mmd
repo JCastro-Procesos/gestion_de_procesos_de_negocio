@@ -1,0 +1,21 @@
+flowchart TD
+    A[Espacio local en navegador] --> B[Dashboard ejecutivo]
+    B --> C[Portafolio de proyectos]
+    C --> D[Cinco etapas metodológicas]
+    D --> E[Actividades y entregables]
+    D --> F[Tareas: Tabla / Kanban]
+    F --> G[Subtareas y temporizador]
+    E --> H[Avance, fechas y responsables]
+    F --> I[Horas y carga de trabajo]
+    C --> J[RAID: riesgos, supuestos, incidencias, dependencias y decisiones]
+    H --> B
+    I --> B
+    J --> B
+    B --> K[KPIs y reportes]
+    A --> L[localStorage]
+    L --> M[Exportar / importar JSON y CSV]
+    F -. acción manual, permisos delegados .-> N[Microsoft To Do]
+    C -. evento manual de fecha objetivo .-> O[Outlook Calendar]
+    P[Microsoft Entra: app SPA, redirect URI, consentimiento] --> N
+    P --> O
+    L -. no incluido: repositorio multiusuario .-> Q[SharePoint / Lists / Dataverse futuro]
