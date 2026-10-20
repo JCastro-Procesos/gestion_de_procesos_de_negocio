@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Bar, BarChart, CartesianGrid, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import type { Workspace } from '../../domain/model';
 import { projectProgress } from '../../domain/metrics';
 
@@ -7,7 +7,6 @@ type RoadmapItem = { id: number; nombre: string; seccion: string; estado: string
 type Source = 'projects' | 'roadmap';
 type View = 'Resumen ejecutivo' | 'Portafolio del proyecto' | 'Seguimiento operativo';
 const VIEWS: View[] = ['Resumen ejecutivo', 'Portafolio del proyecto', 'Seguimiento operativo'];
-const colors = ['#5367d8', '#0ea27b', '#e7a43a', '#de5262', '#8663ce', '#45a1cc'];
 const roadmapKey = 'itm-dashboard-roadmap-v1';
 const roadmapProgress: Record<string, number> = { Pendiente: 0, 'En análisis': 15, Aprobada: 20, Trabajando: 25, 'En desarrollo': 40, Elaborando: 60, 'En revisión': 85, 'En pruebas': 85, Completada: 100, Descartada: 0 };
 const today = () => new Date().toISOString().slice(0, 10);
