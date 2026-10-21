@@ -7,7 +7,7 @@ const DAY=86400000;
 const pct=(task:Task)=>task.status==='Completado'?100:task.subtasks.length?Math.round(task.subtasks.filter(s=>s.done).length/task.subtasks.length*100):task.status==='En Revisión'?85:task.status==='En Proceso'?50:0;
 export function TaskOperationalPanel({workspace,onSaveTask,onToggleSubtask}:{workspace:Workspace;onSaveTask:(task:Task,isNew:boolean)=>void;onToggleSubtask:(taskId:string,subtaskId:string)=>void}){
  const [mode,setMode]=useState<'Mi trabajo'|'Gantt'|'Calendario'|'Bloqueos'>('Mi trabajo');
- const [member,setMember]=useState('Todos');const [week,setWeek]=useState(0);const [quick,setQuick]=useState('');
+ const [member,setMember]=useState('Todos');const [week,setWeek]=useState(0);
  const tasks=workspace.tasks.filter(t=>member==='Todos'||t.assigneeId===member);
  const ordered=useMemo(()=>[...tasks].sort((a,b)=>(a.dueDate||'9999').localeCompare(b.dueDate||'9999')),[tasks]);
  const start=new Date();start.setDate(start.getDate()-((start.getDay()+6)%7)+week*7);start.setHours(0,0,0,0);
