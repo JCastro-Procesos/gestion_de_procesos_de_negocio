@@ -1,0 +1,47 @@
+name: Preparar paquete Hostinger
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Obtener código
+        uses: actions/checkout@v4
+      - name: Instalar pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11.25.0
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: pnpm
+      - name: Instalar dependencias
+        run: pnpm install --frozen-lockfile
+      - name: Compilar para procesos.viajescasal.com
+        run: pnpm exec tsc -b && pnpm exec vite build --config vite.hostinger.config.ts
+      - name: Preparar navegación SPA en Apache
+        run: |
+          cat > dist-hostinger/.htaccess <<'EOF'
+          <IfModule mod_rewrite.c>
+            RewriteEngine On
+            RewriteBase /
+            RewriteRule ^index\.html$ - [L]
+            RewriteCond %{REQUEST_FILENAME} !-f
+            RewriteCond %{REQUEST_FILENAME} !-d
+            RewriteRule . /index.html [L]
+          </IfModule>
+          EOF
+      - name: Crear ZIP listo para public_html
+        run: cd dist-hostinger && zip -r ../itm-project-hub-hostinger.zip .
+      - name: Descargar paquete de publicación
+        uses: actions/upload-artifact@v4
+        with:
+          name: itm-project-hub-hostinger
+          path: itm-project-hub-hostinger.zip
+          retention-days: 30
