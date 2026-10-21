@@ -14,7 +14,7 @@ export function ReportsPage({ workspace }: { workspace: Workspace }) {
   const [filters,setFilters]=useState<ReportFilters>({area:'Todos',status:'Todos',traffic:'Todos',owner:'Todos',method:'Todos'});
   const [settings,setSettings]=useState(readReportSettings);
   const projects=filterReportProjects(workspace,filters);
-  const filteredWorkspace=useMemo(()=>({...workspace,projects,stages:workspace.stages.filter(s=>projects.some(p=>p.id===s.projectId)),tasks:workspace.tasks.filter(t=>projects.some(p=>p.id===t.projectId)),raids:filteredWorkspace.raids.filter(r=>projects.some(p=>p.id===r.projectId))}),[workspace,projects]);
+  const filteredWorkspace=useMemo(()=>({...workspace,projects,stages:workspace.stages.filter(s=>projects.some(p=>p.id===s.projectId)),tasks:workspace.tasks.filter(t=>projects.some(p=>p.id===t.projectId)),raids:workspace.raids.filter(r=>projects.some(p=>p.id===r.projectId))}),[workspace,projects]);
   const metrics = executiveMetrics(filteredWorkspace);
   const onTrack = projects.length ? Math.round(projects.filter((project) => project.semaforo === 'Verde' && project.status !== 'Bloqueado').length / projects.length * 100) : 0;
   const completed = projects.filter((project) => project.status === 'Completado').length;
