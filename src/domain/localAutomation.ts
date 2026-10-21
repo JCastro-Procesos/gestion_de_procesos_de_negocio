@@ -1,4 +1,4 @@
-import type { Task,Workspace } from './model';
+import type { Workspace } from './model';
 import { projectProgress } from './metrics';
 export type AutomationAlert={id:string;level:'Crítica'|'Alta'|'Media';category:'Vencimiento'|'Riesgo'|'Capacidad'|'Hito'|'Predicción';projectId:string;taskId?:string;message:string;action:string;dueDate?:string};
 const day=(s:string)=>Date.parse(s+'T12:00:00');
