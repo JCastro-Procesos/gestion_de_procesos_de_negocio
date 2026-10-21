@@ -1,0 +1,24 @@
+import { useState } from 'react';
+import type { Project, Workspace } from '../../domain/model';
+type Request = { id:string;name:string;area:string;objective:string;requestedBy:string;priority:'Baja'|'Media'|'Alta'|'Crítica';mode:'Express'|'Estándar'|'Transformación';status:'Pendiente'|'Aprobada'|'Rechazada';reason:string;createdAt:string;projectId?:string };
+const KEY='itm-project-requests-v1';
+function read():Request[]{try{const x:unknown=JSON.parse(localStorage.getItem(KEY)||'[]');return Array.isArray(x)?x as Request[]:[];}catch{return [];}}
+const input:React.CSSProperties={padding:'8px 10px',border:'1px solid #dfe5f0',borderRadius:8,width:'100%',fontSize:12};
+const button:React.CSSProperties={padding:'8px 12px',background:'#eaf1fb',color:'#243b67',border:'1px solid #dfe5f0',borderRadius:8,fontWeight:700,cursor:'pointer'};
+const initial={name:'',area:'',objective:'',requestedBy:'',priority:'Media' as Request['priority'],mode:'Estándar' as Request['mode']};
+export function ProjectRequestsPanel({workspace,onSaveProject,toast}:{workspace:Workspace;onSaveProject:(project:Project,mode:Request['mode'],isNew:boolean)=>void;toast:(msg:string)=>void}) {
+ const [requests,setRequests]=useState(read);const [form,setForm]=useState(initial);
+ const persist=(next:Request[])=>{setRequests(next);localStorage.setItem(KEY,JSON.stringify(next));};
+ const change=(id:string,fn:(r:Request)=>Request)=>persist(requests.map(r=>r.id===id?fn(r):r));
+ const approve=(r:Request)=>{if(r.status!=='Pendiente')return;const id='project-'+crypto.randomUUID(),date=new Date().toISOString().slice(0,10);const project:Project={id,name:r.name,area:r.area,ownerId:workspace.members[0]?.id||'',sponsor:r.requestedBy,methodologyId:2,status:'Por iniciar',semaforo:'Verde',startDate:date,dueDate:'',goal:r.objective,description:'Solicitud aprobada: '+r.id,createdAt:date,updatedAt:date};onSaveProject(project,r.mode,true);change(r.id,x=>({...x,status:'Aprobada',projectId:id}));toast('Solicitud aprobada y proyecto creado');};
+ return <div style={{display:'grid',gap:12,marginTop:14}}><div><strong style={{fontSize:14,color:'#243b67'}}>Solicitudes de proyectos · bandeja de aprobación</strong><p style={{fontSize:11,color:'#8490a3'}}>Las solicitudes se registran sin crear proyectos. Solo al aprobar se genera un proyecto con la plantilla elegida.</p></div>
+ <form onSubmit={e=>{e.preventDefault();if(!form.name.trim()||!form.area.trim())return;const r:Request={...form,id:'REQ-'+crypto.randomUUID(),status:'Pendiente',reason:'',createdAt:new Date().toISOString()};persist([r,...requests]);setForm(initial);toast('Solicitud registrada para aprobación');}} style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(180px,1fr))',gap:8}}>
+ <input required aria-label="Nombre del proyecto solicitado" placeholder="Proyecto solicitado *" style={input} value={form.name} onChange={e=>setForm({...form,name:e.target.value})}/>
+ <input required aria-label="Área solicitante" placeholder="Área / UDN *" style={input} value={form.area} onChange={e=>setForm({...form,area:e.target.value})}/>
+ <input aria-label="Solicitante" placeholder="Solicitante" style={input} value={form.requestedBy} onChange={e=>setForm({...form,requestedBy:e.target.value})}/>
+ <input aria-label="Objetivo" placeholder="Objetivo y justificación" style={input} value={form.objective} onChange={e=>setForm({...form,objective:e.target.value})}/>
+ <select aria-label="Prioridad" style={input} value={form.priority} onChange={e=>setForm({...form,priority:e.target.value as Request['priority']})}>{(['Baja','Media','Alta','Crítica'] as const).map(x=><option key={x}>{x}</option>)}</select>
+ <select aria-label="Plantilla" style={input} value={form.mode} onChange={e=>setForm({...form,mode:e.target.value as Request['mode']})}>{(['Express','Estándar','Transformación'] as const).map(x=><option key={x}>{x}</option>)}</select>
+ <button type="submit" style={{...button,background:'#223d78',color:'#fff'}}>Registrar solicitud</button></form>
+ <div style={{overflowX:'auto'}}><table className="data-table"><thead><tr><th>Solicitud</th><th>Prioridad</th><th>Plantilla</th><th>Estado</th><th>Decisión</th></tr></thead><tbody>{requests.map(r=><tr key={r.id}><td><b>{r.name}</b><small>{r.area} · {r.requestedBy||'Sin solicitante'}</small></td><td>{r.priority}</td><td>{r.mode}</td><td>{r.status}</td><td>{r.status==='Pendiente'?<div style={{display:'flex',gap:5}}><button style={button} onClick={()=>approve(r)}>Aprobar y crear</button><button style={button} onClick={()=>change(r.id,x=>({...x,status:'Rechazada'}))}>Rechazar</button></div>:r.projectId?'Proyecto generado':'Decisión registrada'}</td></tr>)}</tbody></table>{!requests.length&&<p style={{fontSize:11}}>No hay solicitudes registradas.</p>}</div><p style={{fontSize:10,color:'#8790a5'}}>Control local del navegador: no implementa todavía permisos por usuario, firmas de aprobación ni sincronización entre dispositivos.</p></div>;
+}
