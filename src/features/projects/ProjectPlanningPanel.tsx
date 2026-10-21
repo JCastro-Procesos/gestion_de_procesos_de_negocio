@@ -1,6 +1,5 @@
 import { useMemo, useState } from 'react';
-import type { Project, Stage, Task, Workspace } from '../../domain/model';
-import { projectProgress } from '../../domain/metrics';
+import type { Project, Stage, Workspace } from '../../domain/model';
 type PlanMeta = { baseline?: Record<string,{start:string;end:string;hours:number}>; dependencies?: Record<string,string[]> };
 const KEY='itm-project-planning-v1';
 function read():Record<string,PlanMeta>{try{return JSON.parse(localStorage.getItem(KEY)||'{}') as Record<string,PlanMeta>;}catch{return {};}}
@@ -10,7 +9,7 @@ const card:React.CSSProperties={background:'#fff',border:'1px solid #e6eaf2',bor
 const field:React.CSSProperties={border:'1px solid #dfe5f0',borderRadius:7,padding:'7px 8px',fontSize:11,maxWidth:'100%'};
 const btn:React.CSSProperties={...field,background:'#eaf1fb',color:'#243b67',fontWeight:700,cursor:'pointer'};
 const today=()=>new Date().toISOString().slice(0,10);
-export function ProjectPlanningPanel({workspace,project,stages,onUpdateStage,onUpdateActivity}:{workspace:Workspace;project:Project;stages:Stage[];onUpdateStage:(stage:Stage)=>void;onUpdateActivity:(stage:Stage,activity:Stage['activities'][number])=>void}) {
+export function ProjectPlanningPanel({workspace,project,stages,onUpdateActivity}:{workspace:Workspace;project:Project;stages:Stage[];onUpdateActivity:(stage:Stage,activity:Stage['activities'][number])=>void}) {
  const [mode,setMode]=useState<'Gantt'|'Kanban'|'Dependencias'|'Línea base'>('Gantt');
  const [all,setAll]=useState(read);const meta=all[project.id]||{};
  const save=(next:PlanMeta)=>{const value={...all,[project.id]:next};setAll(value);localStorage.setItem(KEY,JSON.stringify(value));};
