@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { AlertOctagon, ArrowUpRight, Check, Plus, ShieldAlert, TriangleAlert } from 'lucide-react';
 import type { RaidItem, RaidSeverity, RaidStatus, RaidType, Workspace } from '../../domain/model';
 import { Avatar, Badge, Button, EmptyState, FormField, Modal, Panel, SectionHeading, SelectInput, TextArea, TextInput, dateLabel } from '../../components/ui';
+import { RaidControlPanel } from './RaidControlPanel';
 
 const TYPES: RaidType[] = ['Riesgo', 'Supuesto', 'Incidencia', 'Dependencia', 'Decisión'];
 const SEVERITIES: RaidSeverity[] = ['Baja', 'Media', 'Alta', 'Crítica'];
@@ -28,6 +29,7 @@ export function RaidPage({ workspace, onSave, onDelete, toast, initialProjectId,
   const high = active.filter((item) => item.severity === 'Alta').length;
 
   return <div className="page-stack"><SectionHeading title="Riesgos y decisiones" description="Registro RAID: riesgos, supuestos, incidencias, dependencias y decisiones" action={<Button variant="primary" onClick={() => openForm()}><Plus size={15}/> Nuevo registro</Button>}/>
+    <RaidControlPanel workspace={workspace} onSave={onSave}/>
     <div className="raid-summary-grid"><RaidSummary icon={<ShieldAlert size={18}/>} label="Elementos abiertos" value={active.length} tone="blue"/><RaidSummary icon={<AlertOctagon size={18}/>} label="Críticos" value={critical} tone="red"/><RaidSummary icon={<TriangleAlert size={18}/>} label="Altos" value={high} tone="amber"/><RaidSummary icon={<Check size={18}/>} label="Cerrados" value={workspace.raids.filter((item) => item.status === 'Cerrado').length} tone="green"/></div>
     {critical > 0 && <div className="raid-escalation"><span><AlertOctagon size={18}/></span><div><b>{critical} elemento{critical === 1 ? '' : 's'} crítico{critical === 1 ? '' : 's'} requiere{critical === 1 ? '' : 'n'} atención inmediata</b><small>Confirma responsable, acción de respuesta y fecha; escala al líder del proyecto y patrocinador.</small></div><ArrowUpRight size={17}/></div>}
     <Panel className="raid-table-panel"><div className="task-filter-bar"><div className="search-box"><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Buscar descripción, proyecto o responsable…" aria-label="Buscar RAID"/></div><select className="input filter-select" value={projectId} onChange={(event) => setProjectId(event.target.value)}><option value="">Todos los proyectos</option>{workspace.projects.map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}</select><select className="input filter-select" value={status} onChange={(event) => setStatus(event.target.value)}><option>Abiertos</option><option>Todos</option>{STATUSES.map((item) => <option key={item}>{item}</option>)}</select><span className="table-count">{filtered.length} registros</span></div>
