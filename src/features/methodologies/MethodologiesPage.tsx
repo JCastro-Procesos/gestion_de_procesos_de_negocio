@@ -1,15 +1,21 @@
 import { useState } from 'react';
+import type { Task, Workspace } from '../../domain/model';
+import { MethodologyEditor, readMethodologies } from './MethodologyEditor';
+import { DocumentationHub } from './DocumentationHub';
 import { ArrowRight, ArrowUpRight, BadgeCheck, BookOpen, CheckCircle2, CircleHelp, Layers3, ListChecks } from 'lucide-react';
 import { METHODOLOGIES, DEFAULT_STAGE_BLUEPRINT } from '../../domain/methodologies';
 import { Button, Panel, SectionHeading } from '../../components/ui';
 
-export function MethodologiesPage({ onNavigate }: { onNavigate: () => void }) {
+export function MethodologiesPage({ onNavigate, workspace, onSaveTask }: { onNavigate: () => void; workspace: Workspace; onSaveTask: (task: Task, isNew: boolean) => void }) {
+  const [catalog, setCatalog] = useState(readMethodologies);
   const [selected, setSelected] = useState(2);
-  const method = METHODOLOGIES.find((item) => item.id === selected) || METHODOLOGIES[1];
+  const method = catalog.find((item) => item.id === selected) || catalog[0] || METHODOLOGIES[1];
   return <div className="page-stack"><SectionHeading title="Catálogo metodológico" description="Cinco enfoques de consultoría del kit ITM y sus herramientas de referencia"/>
     <div className="method-intro"><div className="method-intro-icon"><BookOpen size={19}/></div><div><b>Un catálogo de enfoques, una estructura de seguimiento</b><p>El equipo aprobó una metodología operativa estándar de cinco etapas. Las metodologías de este catálogo definen qué enfoque usar; no alteran el número de etapas obligatorias.</p></div><Button variant="primary" onClick={onNavigate}>Ver las cinco etapas <ArrowRight size={15}/></Button></div>
-    <div className="method-catalog-grid">{METHODOLOGIES.map((item) => <button key={item.id} className={`method-catalog-card ${item.id === selected ? 'method-selected' : ''}`} onClick={() => setSelected(item.id)}><span className="method-card-no">0{item.id}</span><span className="method-card-title">{item.name}</span><span className="method-card-desc">{item.description}</span><span className="method-card-footer">Ver metodología <ArrowUpRight size={14}/></span></button>)}</div>
+    <div className="method-catalog-grid">{catalog.map((item) => <button key={item.id} className={`method-catalog-card ${item.id === selected ? 'method-selected' : ''}`} onClick={() => setSelected(item.id)}><span className="method-card-no">0{item.id}</span><span className="method-card-title">{item.name}</span><span className="method-card-desc">{item.description}</span><span className="method-card-footer">Ver metodología <ArrowUpRight size={14}/></span></button>)}</div>
     <div className="method-detail-layout"><Panel className="method-detail-panel"><div className="method-detail-title"><span className="method-detail-num">0{method.id}</span><div><span className="eyebrow">METODOLOGÍA ITM</span><h2>{method.name}</h2><p>{method.description}</p></div></div><div className="method-block"><h3><CircleHelp size={15}/> Cuándo utilizarla</h3><p>{method.when}</p></div><div className="method-block"><h3><ListChecks size={15}/> Herramientas disponibles</h3><div className="method-tool-list">{method.tools.map((tool, index) => <span key={tool}><b>{String(index + 1).padStart(2, '0')}</b>{tool}</span>)}</div></div><div className="method-block"><h3><BadgeCheck size={15}/> Entregables típicos</h3><div className="method-output-list">{method.outputs.map((output) => <span key={output}><CheckCircle2 size={15}/>{output}</span>)}</div></div><div className="method-result"><span>RESULTADO ESPERADO</span><p>{method.result}</p></div></Panel>
       <Panel className="method-stages-panel"><div className="panel-heading"><div><h3>Marco común del equipo</h3><p>Etapas que estructuran cada proyecto</p></div><Layers3 size={18}/></div><div className="mini-stage-list">{DEFAULT_STAGE_BLUEPRINT.map((stage, index) => <div key={stage.name}><span>{String(index + 1).padStart(2,'0')}</span><div><b>{stage.name}</b><small>{stage.deliverable}</small></div></div>)}</div><div className="method-note"><b>Planes del kit de consultoría</b><p>Las plantillas Express, Estándar y Transformación cambian la distribución temporal y el enfoque de trabajo, pero conservan estas cinco etapas editables.</p></div></Panel></div>
+    <MethodologyEditor onChange={setCatalog}/>
+    <DocumentationHub workspace={workspace} onSaveTask={onSaveTask}/>
   </div>;
 }
