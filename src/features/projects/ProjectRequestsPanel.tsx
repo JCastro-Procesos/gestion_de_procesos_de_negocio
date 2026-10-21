@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { Project, Workspace } from '../../domain/model';
 
 export type ProjectRequest = {
@@ -13,6 +13,7 @@ export function saveProjectRequest(request:ProjectRequest){const next=[request,.
 const button:React.CSSProperties={padding:'8px 12px',background:'#eaf1fb',color:'#243b67',border:'1px solid #dfe5f0',borderRadius:8,fontWeight:700,cursor:'pointer'};
 export function ProjectRequestsPanel({workspace,onSaveProject,toast}:{workspace:Workspace;onSaveProject:(project:Project,mode:ProjectRequest['mode'],isNew:boolean)=>void;toast:(msg:string)=>void}){
  const [requests,setRequests]=useState(readProjectRequests);
+ useEffect(()=>{const refresh=()=>setRequests(readProjectRequests());window.addEventListener('itm-project-requests-updated',refresh);return()=>window.removeEventListener('itm-project-requests-updated',refresh);},[]);
  const persist=(next:ProjectRequest[])=>{setRequests(next);localStorage.setItem(REQUEST_KEY,JSON.stringify(next));window.dispatchEvent(new Event('itm-project-requests-updated'));};
  const decide=(r:ProjectRequest,approved:boolean)=>{if(r.status!=='Pendiente')return;
   if(!approved){persist(requests.map(x=>x.id===r.id?{...x,status:'Rechazada',reason:'Rechazada en revisión local'}:x));toast('Solicitud rechazada');return;}
