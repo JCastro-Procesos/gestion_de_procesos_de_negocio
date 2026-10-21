@@ -3,12 +3,11 @@ import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis, Bar, B
 import type { Workspace } from '../../domain/model';
 import { executiveMetrics, lateMilestones, memberWorkload, projectProgress, projectIsAtRisk } from '../../domain/metrics';
 import { methodFor } from '../../domain/methodologies';
-import { ExecutivePowerPanel } from './ExecutivePowerPanel';
 import { Badge, Button, EmptyState, Panel, ProgressBar, SectionHeading, TrafficBadge, dateLabel } from '../../components/ui';
 
 const COLORS = ['#0ea27b', '#e7a43a', '#de5262'];
 
-export function Dashboard({ workspace, onOpenProject, onNavigate }: { workspace: Workspace; onOpenProject: (id: string) => void; onNavigate: (page: string) => void }) {
+export function Dashboard({ workspace, onOpenProject, onNavigate, viewerName, viewerRole }: { workspace: Workspace; onOpenProject: (id: string) => void; onNavigate: (page: string) => void; viewerName: string; viewerRole: string }) {
   const metrics = executiveMetrics(workspace);
   const late = lateMilestones(workspace).slice(0, 4);
   const risky = workspace.projects.filter((project) => projectIsAtRisk(project, workspace.stages, workspace.raids)).slice(0, 4);
@@ -17,9 +16,7 @@ export function Dashboard({ workspace, onOpenProject, onNavigate }: { workspace:
   const nextTasks = workspace.tasks.filter((task) => task.status !== 'Completado').sort((a, b) => (a.dueDate || '9999').localeCompare(b.dueDate || '9999')).slice(0, 5);
 
   return <div className="page-stack">
-    <section className="welcome-banner"><div className="welcome-copy"><span className="eyebrow light">GESTIÓN DE PROYECTOS Y PROCESOS</span><h1>Hola, equipo ITM</h1><p>Una lectura clara del portafolio, los compromisos y las decisiones que requieren atención.</p><div className="welcome-tags"><span><Activity size={14} /> Seguimiento semanal</span><span><ShieldAlert size={14} /> RAID y alertas</span><span><Gauge size={14} /> Cinco etapas por proyecto</span></div></div><div className="welcome-orbit"><span className="orbit-dot dot-one"/><span className="orbit-dot dot-two"/><span className="orbit-line"/><span className="orbit-center"><TrendingUp size={24}/></span></div><div className="welcome-footer">ESPACIO LOCAL · {workspace.workspaceName}</div></section>
-
-    <ExecutivePowerPanel workspace={workspace} onOpenProject={onOpenProject} />
+    <section className="welcome-banner"><div className="welcome-copy"><span className="eyebrow light">GESTIÓN DE PROYECTOS Y PROCESOS</span><h1>Hola, {viewerName.trim() ? viewerName.trim().split(/\\s+/)[0] : 'equipo ITM'}</h1><p>{viewerRole ? viewerRole + ' · ' : ''}Cada aprendizaje impulsa tu crecimiento personal y cada desafío fortalece tu desarrollo profesional.</p><div className="welcome-tags"><span><Activity size={14} /> Seguimiento semanal</span><span><ShieldAlert size={14} /> RAID y alertas</span><span><Gauge size={14} /> Cinco etapas por proyecto</span></div></div><div className="welcome-orbit"><span className="orbit-dot dot-one"/><span className="orbit-dot dot-two"/><span className="orbit-line"/><span className="orbit-center"><TrendingUp size={24}/></span></div><div className="welcome-footer">ESPACIO LOCAL · {workspace.workspaceName}</div></section>
 
     <div className="page-title-row"><SectionHeading title="Resumen ejecutivo" description="Indicadores consolidados del espacio de trabajo" /><Button variant="quiet" onClick={() => onNavigate('reportes')}>Ver reportes <ArrowRight size={15}/></Button></div>
     <div className="metric-grid">
