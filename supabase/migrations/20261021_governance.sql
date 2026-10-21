@@ -57,6 +57,8 @@ create policy "members read governance" on public.itm_governance for select to a
 create policy "members request" on public.itm_governance for insert to authenticated with check (public.itm_role() is not null and requester=auth.uid() and status='pendiente' and reviewer is null and decided_at is null);
 create policy "reviewers decide" on public.itm_governance for update to authenticated using (public.itm_role() in ('admin','gerencia')) with check (public.itm_role() in ('admin','gerencia'));
 create policy "members read audit" on public.itm_audit for select to authenticated using (public.itm_role() in ('admin','gerencia'));
+-- Restringir escritura de auditoría a triggers SECURITY DEFINER.
+revoke insert, update, delete, truncate on public.itm_audit from anon, authenticated;
 -- No INSERT/UPDATE/DELETE grants for audit: immutable from browser.
 create or replace function public.itm_audit_changes() returns trigger language plpgsql security definer set search_path=public as $$
 begin
@@ -64,6 +66,22 @@ begin
  values (auth.uid(),TG_TABLE_NAME,coalesce(new.id::text,old.id::text),TG_OP,to_jsonb(old),to_jsonb(new));
  return coalesce(new,old);
 end $$;
+create or replace function public.itm_protect_governance() returns trigger language plpgsql security definer set search_path=public as $
+begin
+ if TG_OP='UPDATE' then
+  if new.requester is distinct from old.requester or new.kind is distinct from old.kind or new.project_id is distinct from old.project_id or new.created_at is distinct from old.created_at then
+   raise exception 'Campos de solicitud inmutables';
+  end if;
+  if new.status is distinct from old.status and old.status not in ('pendiente','devuelto') then
+   raise exception 'Decisión final no puede modificarse';
+  end if;
+  if new.status in ('aprobado','rechazado') then
+   new.reviewer:=auth.uid();new.decided_at:=now();
+  end if;
+ end if;
+ return new;
+end $;
+create trigger itm_governance_protect before update on public.itm_governance for each row execute function public.itm_protect_governance();
 create trigger itm_workspace_audit after insert or update or delete on public.itm_workspace for each row execute function public.itm_audit_changes();
 create trigger itm_governance_audit after insert or update or delete on public.itm_governance for each row execute function public.itm_audit_changes();
 -- IMPORTANTE: establecer el primer administrador desde SQL Editor, nunca desde el navegador:
