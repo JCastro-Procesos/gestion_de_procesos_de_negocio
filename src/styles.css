@@ -6,3 +6,23 @@
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
 
 .badge-priority-urgente{background:#ffebed;color:#b63e4e}.badge-priority-alta{background:#fff1df;color:#a9711e}.badge-priority-media{background:#edf1ff;color:#5968c5}.badge-priority-baja{background:#f0f2f5;color:#758198}
+
+
+/* Exportación visual de KPIs y reportes a PDF mediante impresión del navegador */
+.itm-print-header{display:none}
+@media print{
+ @page{size:A4 landscape;margin:12mm}
+ html,body,#root{background:#fff!important;overflow:visible!important;height:auto!important}
+ body *{visibility:hidden!important}
+ .itm-reports-print-area,.itm-reports-print-area *{visibility:visible!important}
+ .itm-reports-print-area{position:absolute!important;left:0!important;top:0!important;width:100%!important;max-width:none!important;margin:0!important;padding:0!important;background:#fff!important;overflow:visible!important}
+ .itm-print-header{display:block!important;border-bottom:2px solid #243b78;padding:0 0 10px;margin-bottom:14px;color:#243b78}
+ .itm-print-header h1{font-size:18px;margin:0 0 4px}
+ .itm-print-header p{font-size:10px;margin:0;color:#62718b}
+ .itm-report-actions,.itm-reports-print-area button,.itm-reports-print-area input,.itm-reports-print-area select{display:none!important}
+ .itm-reports-print-area .report-kpi-grid,.itm-reports-print-area .report-layout,.itm-reports-print-area .report-lower-grid{break-inside:avoid-page}
+ .itm-reports-print-area .report-kpi,.itm-reports-print-area .panel,.itm-reports-print-area section{break-inside:avoid-page}
+ .itm-reports-print-area .table-scroll{overflow:visible!important}
+ .itm-reports-print-area .recharts-responsive-container svg{overflow:visible}
+ .itm-reports-print-area *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
+}
