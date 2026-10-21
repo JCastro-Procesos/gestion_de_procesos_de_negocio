@@ -49,3 +49,30 @@
 .itm-scope-picker input{accent-color:#5367d8}
 @media(max-width:1150px){.itm-portfolio-metrics{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media(max-width:680px){.itm-portfolio-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+
+/* Detalle del proyecto: avance protagonista y módulos de consulta */
+.itm-hero-progress{margin-left:auto;min-width:165px;max-width:220px;flex:0 0 190px;background:linear-gradient(135deg,#243b78,#5367d8);border-radius:16px;padding:16px 18px;color:#fff;box-shadow:0 10px 26px rgba(35,59,120,.17);display:grid;gap:6px;text-align:right}
+.itm-hero-progress>span{font-size:10px;letter-spacing:1.5px;font-weight:800;color:#d9e5ff}
+.itm-hero-progress>strong{font-size:44px;line-height:1;font-weight:850;letter-spacing:-2px}
+.itm-hero-progress>strong small{font-size:23px;letter-spacing:0}
+.itm-hero-progress>small{font-size:10px;color:#e4eaff}
+.itm-hero-progress-track{height:6px;background:#ffffff55;border-radius:10px;overflow:hidden}
+.itm-hero-progress-track i{display:block;height:100%;background:#5de2c2;border-radius:10px;transition:width .3s ease}
+.itm-planning-panel{background:#fff;border:1px solid #e4eaf3;border-radius:15px;box-shadow:0 5px 20px rgba(30,50,95,.035);padding:17px;display:grid;gap:13px}
+.itm-planning-header{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px}
+.itm-planning-title{display:flex;gap:12px;align-items:center}
+.itm-planning-title strong{font-size:14px;color:#243b67}
+.itm-planning-title p{font-size:11px;color:#8290a8;margin:5px 0 0}
+.itm-planning-symbol{display:grid;place-items:center;background:linear-gradient(135deg,#243b78,#5367d8);color:white;border-radius:12px;font-size:22px;width:44px;height:44px;flex-shrink:0}
+.itm-planning-toggle{border:1px solid #d9e3f5;border-radius:10px;background:#eaf1fb;color:#243b67;padding:10px 14px;font-weight:800;font-size:11px;cursor:pointer}
+.itm-planning-toggle:hover{background:#dce8fc}
+.itm-planning-summary{display:flex;gap:8px;flex-wrap:wrap}
+.itm-planning-summary span{background:#f5f7fc;border:1px solid #e8edf5;border-radius:10px;padding:9px 12px;font-size:11px;color:#60718d}
+.itm-planning-summary b{color:#243b78}
+.itm-planning-tabs{display:flex;flex-wrap:wrap;gap:7px;border-bottom:1px solid #e8edf5;padding-bottom:12px}
+.itm-planning-tabs button{border:1px solid #e0e7f3;border-radius:10px;background:#f5f8fd;color:#344b77;font-size:11px;font-weight:800;padding:11px 15px;cursor:pointer;transition:background .18s,transform .18s}
+.itm-planning-tabs button:hover{transform:translateY(-1px);background:#e5edff}
+.itm-planning-tabs button.active{background:#243b78;color:#fff;border-color:#243b78;box-shadow:0 5px 13px rgba(36,59,120,.17)}
+.itm-planning-body{background:linear-gradient(180deg,#fcfdff,#fff);border:1px solid #edf0f7;border-radius:12px;padding:13px;min-width:0}
+@media(max-width:700px){.itm-hero-progress{flex-basis:100%;max-width:none;text-align:center}.itm-planning-summary span{flex:1 1 140px}}
