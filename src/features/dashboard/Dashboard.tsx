@@ -1,4 +1,5 @@
-import { Activity, ArrowRight, CalendarClock, CircleAlert, FolderKanban, Gauge, ShieldAlert, TrendingUp } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { Clock3, CalendarDays, Activity, ArrowRight, CalendarClock, CircleAlert, FolderKanban, Gauge, ShieldAlert, TrendingUp } from 'lucide-react';
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis, Bar, BarChart, CartesianGrid } from 'recharts';
 import type { Workspace } from '../../domain/model';
 import { executiveMetrics, lateMilestones, memberWorkload, projectProgress, projectIsAtRisk } from '../../domain/metrics';
@@ -8,6 +9,10 @@ import { Badge, Button, EmptyState, Panel, ProgressBar, SectionHeading, TrafficB
 const COLORS = ['#0ea27b', '#e7a43a', '#de5262'];
 
 export function Dashboard({ workspace, onOpenProject, onNavigate, viewerName, viewerRole }: { workspace: Workspace; onOpenProject: (id: string) => void; onNavigate: (page: string) => void; viewerName: string; viewerRole: string }) {
+  const [currentTime, setCurrentTime] = useState(() => new Date());
+  useEffect(() => { const timer = window.setInterval(() => setCurrentTime(new Date()), 1000); return () => window.clearInterval(timer); }, []);
+  const fullDate = new Intl.DateTimeFormat('es-MX', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }).format(currentTime);
+  const liveTime = new Intl.DateTimeFormat('es-MX', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true }).format(currentTime);
   const metrics = executiveMetrics(workspace);
   const late = lateMilestones(workspace).slice(0, 4);
   const risky = workspace.projects.filter((project) => projectIsAtRisk(project, workspace.stages, workspace.raids)).slice(0, 4);
@@ -16,7 +21,7 @@ export function Dashboard({ workspace, onOpenProject, onNavigate, viewerName, vi
   const nextTasks = workspace.tasks.filter((task) => task.status !== 'Completado').sort((a, b) => (a.dueDate || '9999').localeCompare(b.dueDate || '9999')).slice(0, 5);
 
   return <div className="page-stack">
-    <section className="welcome-banner"><div className="welcome-copy"><span className="eyebrow light">GESTIÓN DE PROYECTOS Y PROCESOS</span><h1>Hola, {viewerName.trim() ? viewerName.trim().split(' ')[0] : 'equipo ITM'}</h1><p>{viewerRole ? viewerRole + ' · ' : ''}Cada aprendizaje impulsa tu crecimiento personal y cada desafío fortalece tu desarrollo profesional.</p><div className="welcome-tags"><span><Activity size={14} /> Seguimiento semanal</span><span><ShieldAlert size={14} /> RAID y alertas</span><span><Gauge size={14} /> Cinco etapas por proyecto</span></div></div><div className="welcome-orbit"><span className="orbit-dot dot-one"/><span className="orbit-dot dot-two"/><span className="orbit-line"/><span className="orbit-center"><TrendingUp size={24}/></span></div><div className="welcome-footer">ESPACIO LOCAL · {workspace.workspaceName}</div></section>
+    <section className="welcome-banner"><div className="welcome-copy"><span className="eyebrow light">GESTIÓN DE PROYECTOS Y PROCESOS</span><h1>Hola, {viewerName.trim() ? viewerName.trim().split(' ')[0] : 'equipo ITM'}</h1><p>{viewerRole ? viewerRole + ' · ' : ''}Cada aprendizaje impulsa tu crecimiento personal y cada desafío fortalece tu desarrollo profesional.</p><div className="welcome-tags"><span><Activity size={14} /> Seguimiento semanal</span><span><ShieldAlert size={14} /> RAID y alertas</span><span><Gauge size={14} /> Cinco etapas por proyecto</span></div></div><div aria-label="Fecha y hora local actual" style={{position:"absolute",right:26,top:22,zIndex:3,padding:"15px 19px",borderRadius:17,background:"rgba(255,255,255,0.13)",border:"1px solid rgba(255,255,255,0.3)",boxShadow:"0 12px 30px rgba(9,26,69,0.13)",backdropFilter:"blur(12px)",color:"#fff",minWidth:230,textAlign:"right"}}><div style={{display:"flex",justifyContent:"flex-end",alignItems:"center",gap:7,fontSize:10,letterSpacing:1.3,fontWeight:700,opacity:.9}}><Clock3 size={14}/> HORA LOCAL · EN VIVO</div><time dateTime={currentTime.toISOString()} style={{display:"block",fontSize:"clamp(21px,2.5vw,34px)",fontWeight:800,letterSpacing:.5,fontVariantNumeric:"tabular-nums",margin:"5px 0 7px"}}>{liveTime}</time><div style={{display:"flex",alignItems:"center",justifyContent:"flex-end",gap:7,fontSize:11,textTransform:"capitalize",opacity:.95}}><CalendarDays size={13}/>{fullDate}</div></div><div className="welcome-orbit"><span className="orbit-dot dot-one"/><span className="orbit-dot dot-two"/><span className="orbit-line"/><span className="orbit-center"><TrendingUp size={24}/></span></div><div className="welcome-footer">ESPACIO LOCAL · {workspace.workspaceName}</div></section>
 
     <div className="page-title-row"><SectionHeading title="Resumen ejecutivo" description="Indicadores consolidados del espacio de trabajo" /><Button variant="quiet" onClick={() => onNavigate('reportes')}>Ver reportes <ArrowRight size={15}/></Button></div>
     <div className="metric-grid">
