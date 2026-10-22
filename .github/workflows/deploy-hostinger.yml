@@ -1,0 +1,88 @@
+name: Publicar ITM Project Hub en Hostinger
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: hostinger-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: hostinger-production
+    steps:
+      - name: Verificar configuración segura
+        env:
+          FTP_HOST: ${{ secrets.HOSTINGER_FTP_HOST }}
+          FTP_USER: ${{ secrets.HOSTINGER_FTP_USER }}
+          FTP_PASSWORD: ${{ secrets.HOSTINGER_FTP_PASSWORD }}
+          FTP_REMOTE_DIR: ${{ vars.HOSTINGER_REMOTE_DIR }}
+        run: |
+          test -n "$FTP_HOST" || { echo "::error::Falta HOSTINGER_FTP_HOST"; exit 1; }
+          test -n "$FTP_USER" || { echo "::error::Falta HOSTINGER_FTP_USER"; exit 1; }
+          test -n "$FTP_PASSWORD" || { echo "::error::Falta HOSTINGER_FTP_PASSWORD"; exit 1; }
+          test -n "$FTP_REMOTE_DIR" || { echo "::error::Falta HOSTINGER_REMOTE_DIR"; exit 1; }
+          case "$FTP_REMOTE_DIR" in
+            /|.|..|*/../*|*/..|../*|*'//'*) echo "::error::Directorio remoto inseguro"; exit 1 ;;
+          esac
+          # El usuario FTP de Hostinger debe estar limitado al subdominio procesos.
+          # Su directorio publicado se presenta como public_html en hPanel.
+          case "$FTP_REMOTE_DIR" in
+            public_html|/public_html|/public_html/|public_html/) ;;
+            *) echo "::error::Ruta no aprobada: usar public_html del usuario FTP exclusivo del subdominio"; exit 1 ;;
+          esac
+
+      - name: Obtener código
+        uses: actions/checkout@v4
+      - name: Instalar pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11.25.0
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: pnpm
+      - name: Instalar dependencias
+        run: pnpm install --frozen-lockfile
+      - name: Validar y compilar
+        run: pnpm exec tsc -b && pnpm exec vite build --config vite.hostinger.config.ts
+      - name: Configurar rutas de la aplicación
+        run: |
+          cat > dist-hostinger/.htaccess <<'EOF'
+          <IfModule mod_rewrite.c>
+            RewriteEngine On
+            RewriteBase /
+            RewriteRule ^index\.html$ - [L]
+            RewriteCond %{REQUEST_FILENAME} !-f
+            RewriteCond %{REQUEST_FILENAME} !-d
+            RewriteRule . /index.html [L]
+          </IfModule>
+          EOF
+      - name: Instalar cliente FTPS
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq lftp
+      - name: Publicar solo archivos de la aplicación
+        env:
+          FTP_HOST: ${{ secrets.HOSTINGER_FTP_HOST }}
+          FTP_USER: ${{ secrets.HOSTINGER_FTP_USER }}
+          FTP_PASSWORD: ${{ secrets.HOSTINGER_FTP_PASSWORD }}
+          FTP_REMOTE_DIR: ${{ vars.HOSTINGER_REMOTE_DIR }}
+        run: |
+          set -euo pipefail
+          # Se exige TLS y certificado válido. Nunca eliminar archivos remotos ajenos.
+          lftp -u "$FTP_USER","$FTP_PASSWORD" "$FTP_HOST" <<EOF
+          set ftp:ssl-force true
+          set ftp:ssl-protect-data true
+          set ssl:verify-certificate true
+          set net:max-retries 2
+          set net:timeout 20
+          cd "$FTP_REMOTE_DIR"
+          mirror --reverse --verbose=1 --parallel=2 --no-perms dist-hostinger .
+          bye
+          EOF
