@@ -49,7 +49,9 @@ if($action==='logout' && $method==='POST'){csrf();session_destroy();reply(200,['
 $u=member($db);$uid=(int)$u['id'];$role=$u['role'];
 if($action==='workspace' && $method==='GET'){
  $q=$db->query("SELECT payload,revision FROM po_workspace WHERE id='main' LIMIT 1");$w=$q->fetch();
- reply(200,['workspace'=>$w?json_decode($w['payload'],true):null,'revision'=>$w?(int)$w['revision']:0]);
+ $payload=$w?json_decode($w['payload'],true):null;
+ if($role!=='admin' && is_array($payload) && isset($payload['members'])){foreach($payload['members'] as &$m){if(($m['role']??'')==='Dirección')$m['role']='';}unset($m);}
+ reply(200,['workspace'=>$payload,'revision'=>$w?(int)$w['revision']:0]);
 }
 if($action==='workspace' && $method==='PUT'){
  csrf();$d=input();$payload=$d['workspace']??null;$rev=$d['revision']??null;
@@ -60,6 +62,8 @@ if($action==='workspace' && $method==='PUT'){
  try {
  $q=$db->query("SELECT revision FROM po_workspace WHERE id='main' FOR UPDATE");$old=$q->fetch();$current=$old?(int)$old['revision']:0;
  if($rev!==$current){$db->rollBack();reply(409,['error'=>'Los datos cambiaron en otra sesión. Recarga antes de guardar.']);}
+ $sync=$db->prepare('INSERT INTO po_projects(id,name,description,status,payload) VALUES (?,?,?,?,?) ON DUPLICATE KEY UPDATE name=VALUES(name),description=VALUES(description),status=VALUES(status),payload=VALUES(payload)');
+ foreach($payload['projects'] as $p){if(!is_array($p)||empty($p['id'])||empty($p['name']))continue;$sync->execute([(string)$p['id'],(string)$p['name'],(string)($p['description']??''),(string)($p['status']??'Por iniciar'),json_encode($p,JSON_UNESCAPED_UNICODE)]);}
  if($old){$q=$db->prepare("UPDATE po_workspace SET payload=?,revision=revision+1,updated_by=? WHERE id='main'");$q->execute([$json,$uid]);}
  else{$q=$db->prepare("INSERT INTO po_workspace(id,payload,revision,updated_by) VALUES ('main',?,1,?)");$q->execute([$json,$uid]);}
  logAction($db,$uid,'update','workspace','main');$db->commit();reply(200,['revision'=>$current+1]);
