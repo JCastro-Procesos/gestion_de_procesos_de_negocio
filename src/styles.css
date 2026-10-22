@@ -119,3 +119,6 @@
 .brand-copy em{color:#55d2df;font-style:normal}
 .brand-copy small{letter-spacing:1px;font-size:8px}
 .workspace-avatar{background:linear-gradient(135deg,#09275a,#12b7bb)!important;color:#fff!important}
+
+@keyframes processone-float{0%,100%{transform:translateY(0) rotate(-3deg)}50%{transform:translateY(-6px) rotate(4deg)}}
+@media(prefers-reduced-motion:reduce){[style*='processone-float']{animation:none!important}}
