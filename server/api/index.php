@@ -50,7 +50,13 @@ $u=member($db);$uid=(int)$u['id'];$role=$u['role'];
 if($action==='workspace' && $method==='GET'){
  $q=$db->query("SELECT payload,revision FROM po_workspace WHERE id='main' LIMIT 1");$w=$q->fetch();
  $payload=$w?json_decode($w['payload'],true):null;
- if($role!=='admin' && is_array($payload) && isset($payload['members'])){foreach($payload['members'] as &$m){if(($m['role']??'')==='Dirección')$m['role']='';}unset($m);}
+ if(is_array($payload)){
+ $people=$db->query('SELECT id,name,email,role,active FROM po_users WHERE active=1')->fetchAll();
+ $existing=[];foreach(($payload['members']??[]) as $m){$existing[(string)($m['id']??'')]=$m;}
+ foreach($people as $person){$key='user-'.$person['id'];$old=$existing[$key]??[];$existing[$key]=array_merge(['id'=>$key,'name'=>$person['name'],'role'=>$person['role'],'email'=>$person['email'],'capacityHours'=>36,'color'=>'#5367d8'],$old,['name'=>$person['name'],'email'=>$person['email']]);}
+ $payload['members']=array_values($existing);
+ }
+ if($role!=='admin' && is_array($payload) && isset($payload['members'])){foreach($payload['members'] as &$m){if(in_array(strtolower((string)($m['role']??'')),['dirección','direccion'],true))$m['role']='';}unset($m);}
  reply(200,['workspace'=>$payload,'revision'=>$w?(int)$w['revision']:0]);
 }
 if($action==='workspace' && $method==='PUT'){
