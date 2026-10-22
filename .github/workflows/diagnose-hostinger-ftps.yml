@@ -1,0 +1,23 @@
+name: Diagnosticar certificado FTPS Hostinger
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  certificate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Consultar identidad del certificado FTPS sin credenciales
+        env:
+          FTP_HOST: ${{ secrets.HOSTINGER_FTP_HOST }}
+        run: |
+          set -euo pipefail
+          test -n "$FTP_HOST" || { echo "::error::Falta HOSTINGER_FTP_HOST en el entorno"; exit 1; }
+          echo "Consultando certificado TLS del servicio FTP..."
+          timeout 25 openssl s_client -starttls ftp -connect "${FTP_HOST}:21" -showcerts </dev/null 2>/dev/null |
+            openssl x509 -noout -subject -issuer -ext subjectAltName -dates
+          echo "Usa el nombre DNS incluido en el certificado para configurar HOSTINGER_FTP_HOST."
+    environment: hostinger-production
