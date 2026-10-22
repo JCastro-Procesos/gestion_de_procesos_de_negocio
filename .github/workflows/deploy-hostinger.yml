@@ -28,39 +28,33 @@ jobs:
           test -n "$FTP_USER" || { echo "::error::Falta HOSTINGER_FTP_USER"; exit 1; }
           test -n "$FTP_PASSWORD" || { echo "::error::Falta HOSTINGER_FTP_PASSWORD"; exit 1; }
           test -n "$FTP_REMOTE_DIR" || { echo "::error::Falta HOSTINGER_REMOTE_DIR"; exit 1; }
-          case "$FTP_REMOTE_DIR" in
-            /|.|..|*/../*|*/..|../*|*'//'*) echo "::error::Directorio remoto inseguro"; exit 1 ;;
-          esac
-          # El usuario FTP de Hostinger debe estar limitado al subdominio procesos.
-          # Su directorio publicado se presenta como public_html en hPanel.
-          case "$FTP_REMOTE_DIR" in
-            public_html|/public_html|/public_html/|public_html/) ;;
-            *) echo "::error::Ruta no aprobada: usar public_html del usuario FTP exclusivo del subdominio"; exit 1 ;;
-          esac
+          # La cuenta FTP u378754586.itmprocesos está confinada a la raíz
+          # física de procesos.viajescasal.com. La ruta "/" es segura
+          # únicamente para esa cuenta limitada.
+          test "$FTP_USER" = "u378754586.itmprocesos" || {
+            echo "::error::La cuenta FTP no es la cuenta aislada itmprocesos"
+            exit 1
+          }
+          test "$FTP_REMOTE_DIR" = "/" || {
+            echo "::error::El directorio remoto debe ser / para la cuenta aislada"
+            exit 1
+          }
 
-      - name: Validar servidor y certificado FTPS
+      - name: Validar DNS y certificado FTPS
         env:
           FTP_HOST: ${{ secrets.HOSTINGER_FTP_HOST }}
         run: |
           set -euo pipefail
-          # IP confirmada en el panel FTP de este subdominio.
-          FTP_IP="46.202.198.147"
-          if [ "$FTP_HOST" != "server638.hstgr.io" ]; then
-            echo "::error::HOSTINGER_FTP_HOST debe ser server638.hstgr.io"
+          test "$FTP_HOST" = "ftp.procesos.viajescasal.com" || {
+            echo "::error::Usar el hostname FTPS confirmado por Hostinger"
             exit 1
-          fi
-          # El proveedor facilitó este hostname, pero no resuelve desde GitHub.
-          # Asociamos solo en este runner temporal la IP verificada al nombre TLS.
-          echo "$FTP_IP $FTP_HOST" | sudo tee -a /etc/hosts >/dev/null
-          echo "Verificando certificado FTPS contra $FTP_HOST..."
-          timeout 25 openssl s_client -starttls ftp -connect "$FTP_IP:21" \
-            -servername "$FTP_HOST" -verify_hostname "$FTP_HOST" \
-            -verify_return_error </dev/null 2>&1 |
-            grep -q "Verify return code: 0 (ok)" || {
-              echo "::error::No se pudo verificar el certificado FTPS. No se publicará nada."
-              exit 1
-            }
-          echo "Certificado FTPS válido."
+          }
+          getent ahostsv4 "$FTP_HOST" >/dev/null || {
+            echo "::error::El hostname FTPS no resuelve. Solicitar a Hostinger un nombre DNS válido compatible con el certificado."
+            exit 1
+          }
+          echo "DNS FTPS resuelto; lftp verificará el certificado TLS en la conexión."
+
 
       - name: Obtener código
         uses: actions/checkout@v4
