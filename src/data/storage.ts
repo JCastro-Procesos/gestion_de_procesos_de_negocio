@@ -32,7 +32,7 @@ export function saveWorkspace(workspace: Workspace): void {
 export function createEmptyWorkspace(): Workspace {
   return {
     schemaVersion: 1,
-    workspaceName: 'Espacio de trabajo · ITM',
+    workspaceName: 'ProcessOne · Espacio de trabajo',
     projects: [], stages: [], tasks: [], raids: [], members: [], timeLogs: [],
     graphSettings: { tenantId: '', clientId: '', redirectUri: typeof window === 'undefined' ? 'http://localhost:3000' : window.location.origin, accountType: 'organizations' },
     graphConnectedName: '', graphAccountId: '',
