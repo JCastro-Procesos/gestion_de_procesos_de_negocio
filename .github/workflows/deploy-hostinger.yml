@@ -31,9 +31,11 @@ jobs:
           case "$FTP_REMOTE_DIR" in
             /|.|..|*/../*|*/..|../*|*'//'*) echo "::error::Directorio remoto inseguro"; exit 1 ;;
           esac
+          # El usuario FTP de Hostinger debe estar limitado al subdominio procesos.
+          # Su directorio publicado se presenta como public_html en hPanel.
           case "$FTP_REMOTE_DIR" in
-            *procesos* ) ;;
-            *) echo "::error::La ruta debe identificar explícitamente el subdominio procesos"; exit 1 ;;
+            public_html|/public_html|/public_html/|public_html/) ;;
+            *) echo "::error::Ruta no aprobada: usar public_html del usuario FTP exclusivo del subdominio"; exit 1 ;;
           esac
 
       - name: Obtener código
