@@ -96,4 +96,15 @@ if($action==='initiatives' && $method==='POST'){
  logAction($db,$uid,'create','initiative',(string)$id);$db->commit();reply(201,['id'=>$id]);}
  catch(Throwable $e){$db->rollBack();reply(500,['error'=>'No fue posible crear iniciativa']);}
 }
+if($action==='initiatives' && in_array($method,['PUT','DELETE'],true)){
+ csrf();if(level($role)<3)reply(403,['error'=>'Permiso insuficiente']);$d=input();$id=(int)($d['id']??0);if($id<1)reply(400,['error'=>'ID inválido']);
+ if($method==='DELETE'){$q=$db->prepare('DELETE FROM po_initiatives WHERE id=?');$q->execute([$id]);logAction($db,$uid,'delete','initiative',(string)$id);reply(200,['ok'=>true]);}
+ $title=trim((string)($d['title']??''));$objective=trim((string)($d['objective']??''));$status=(string)($d['status']??'Planeada');$projects=$d['projectIds']??[];
+ if(!$title||strlen($title)>190||!in_array($status,['Planeada','En ejecución','Completada','En riesgo'],true)||!is_array($projects))reply(400,['error'=>'Iniciativa inválida']);
+ $db->beginTransaction();
+ try{$q=$db->prepare('UPDATE po_initiatives SET title=?,objective=?,status=? WHERE id=?');$q->execute([$title,$objective,$status,$id]);$db->prepare('DELETE FROM po_initiative_projects WHERE initiative_id=?')->execute([$id]);
+ $link=$db->prepare('INSERT INTO po_initiative_projects(initiative_id,project_id) SELECT ?,id FROM po_projects WHERE id=?');foreach(array_unique($projects) as $p){if(is_string($p))$link->execute([$id,$p]);}
+ logAction($db,$uid,'update','initiative',(string)$id);$db->commit();reply(200,['ok'=>true]);}
+ catch(Throwable $e){$db->rollBack();reply(500,['error'=>'No fue posible actualizar']);}
+}
 reply(404,['error'=>'Ruta no encontrada']);
