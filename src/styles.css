@@ -111,3 +111,11 @@
 .itm-portfolio-metrics .metric-value{font-size:25px;line-height:1.15;margin:5px 0 3px}
 .itm-portfolio-metrics .metric-note{font-size:10px;line-height:1.35}
 @media(prefers-reduced-motion:reduce){.itm-portfolio-metrics .metric-card{transition:none}.itm-portfolio-metrics .metric-card:hover{transform:none}}
+
+/* ProcessOne: identidad de marca y símbolo de flujo continuo */
+.brand .brand-symbol,.mobile-mark .brand-symbol{display:inline-block!important;flex:0 0 38px;width:38px;height:38px;background:url('/processone.svg') center/contain no-repeat!important;border:0!important;box-shadow:none!important}
+.brand .brand-symbol span,.mobile-mark .brand-symbol span{display:none!important}
+.brand-copy b{font-weight:850;letter-spacing:-.45px;text-transform:none!important}
+.brand-copy em{color:#55d2df;font-style:normal}
+.brand-copy small{letter-spacing:1px;font-size:8px}
+.workspace-avatar{background:linear-gradient(135deg,#09275a,#12b7bb)!important;color:#fff!important}
