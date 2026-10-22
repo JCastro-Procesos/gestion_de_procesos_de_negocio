@@ -6,7 +6,7 @@ header('Cache-Control: no-store');
 header('X-Content-Type-Options: nosniff');
 header('Referrer-Policy: no-referrer');
 if (empty($_SERVER['HTTPS']) || $_SERVER['HTTPS'] === 'off') { http_response_code(403); echo '{"error":"HTTPS requerido"}'; exit; }
-$config = dirname(__DIR__, 4) . '/processone-private/config.php';
+$config = '/home/u378754586/processone-private/config.php';
 if (!is_file($config)) { http_response_code(503); echo '{"error":"Servidor sin configurar"}'; exit; }
 $settings = require $config;
 if (!is_array($settings)) { http_response_code(503); exit; }
@@ -36,8 +36,9 @@ $action=$_GET['action']??'';
 $method=$_SERVER['REQUEST_METHOD']??'GET';
 if($action==='login' && $method==='POST'){
  $d=input();$email=strtolower(trim((string)($d['email']??'')));$password=(string)($d['password']??'');
+ $limit=$db->prepare('SELECT COUNT(*) FROM po_login_attempts WHERE ip_hash=? AND attempted_at > DATE_SUB(NOW(), INTERVAL 15 MINUTE)');$ipHash=hash('sha256',($_SERVER['REMOTE_ADDR']??'unknown').($settings['rate_secret']??''));$limit->execute([$ipHash]);if((int)$limit->fetchColumn()>=10)reply(429,['error'=>'Demasiados intentos. Intenta más tarde.']);
  $q=$db->prepare('SELECT id,name,email,password_hash,role,active FROM po_users WHERE email=? LIMIT 1');$q->execute([$email]);$u=$q->fetch();
- if(!$u || !$u['active'] || !password_verify($password,$u['password_hash'])){usleep(300000);reply(401,['error'=>'Credenciales inválidas']);}
+ if(!$u || !$u['active'] || !password_verify($password,$u['password_hash'])){$fail=$db->prepare('INSERT INTO po_login_attempts(ip_hash) VALUES (?)');$fail->execute([$ipHash]);usleep(300000);reply(401,['error'=>'Credenciales inválidas']);}
  session_regenerate_id(true);$_SESSION['uid']=(int)$u['id'];$_SESSION['csrf']=bin2hex(random_bytes(32));unset($u['password_hash']);
  logAction($db,(int)$u['id'],'login','user',(string)$u['id']);reply(200,['user'=>$u,'csrf'=>$_SESSION['csrf']]);
 }
