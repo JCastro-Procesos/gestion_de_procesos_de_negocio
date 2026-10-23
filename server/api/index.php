@@ -226,4 +226,12 @@ if($action==='governance' && $method==='PUT'){
   logAction($db,$uid,'decide','governance',$id);$db->commit();reply(200,['ok'=>true]);
  }catch(Throwable $e){if($db->inTransaction())$db->rollBack();reply(500,['error'=>'No fue posible registrar la decisión']);}
 }
+
+if($action==='audit' && $method==='GET'){
+ if($role!=='admin')reply(403,['error'=>'Solo Administración puede consultar la auditoría']);
+ $limit=min(100,max(10,(int)($_GET['limit']??50)));$offset=max(0,(int)($_GET['offset']??0));
+ $q=$db->prepare('SELECT l.id,l.action,l.entity_type,l.entity_id,l.created_at,u.name actor FROM po_audit_log l LEFT JOIN po_users u ON u.id=l.actor_id ORDER BY l.id DESC LIMIT ? OFFSET ?');
+ $q->bindValue(1,$limit,PDO::PARAM_INT);$q->bindValue(2,$offset,PDO::PARAM_INT);$q->execute();
+ reply(200,['events'=>$q->fetchAll(),'limit'=>$limit,'offset'=>$offset]);
+}
 reply(404,['error'=>'Ruta no encontrada']);
