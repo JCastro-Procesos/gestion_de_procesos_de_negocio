@@ -8,7 +8,7 @@ import { DEMO_WORKSPACE } from '../data/demo';
 import { createEmptyWorkspace } from '../data/storage';
 import { importCsv, importJson } from '../data/exchange';
 
-const InitiativesPage = lazy(() => import('../features/initiatives/InitiativesPage').then((module) => ({ default: module.InitiativesPage })));
+const AuditPage = lazy(() => import('../features/audit/AuditPage').then((module) => ({ default: module.AuditPage })));\nconst InitiativesPage = lazy(() => import('../features/initiatives/InitiativesPage').then((module) => ({ default: module.InitiativesPage })));
 const UsersPage = lazy(() => import('../features/users/UsersPage').then((module) => ({ default: module.UsersPage })));
 const Dashboard = lazy(() => import('../features/dashboard/Dashboard').then((module) => ({ default: module.Dashboard })));
 const ProjectsPage = lazy(() => import('../features/projects/ProjectsPage').then((module) => ({ default: module.ProjectsPage })));
@@ -33,7 +33,7 @@ const NAV = [
   { id: 'metodologias', label: 'Metodologías', icon: BookOpen },
   { id: 'gobierno', label: 'Gobierno y autorizaciones', icon: ShieldAlert },
   { id: 'datos', label: 'Datos e intercambio', icon: Database, group: 'Configuración' },
-  { id: 'usuarios', label: 'Usuarios y perfiles', icon: UserRoundCog },
+  { id: 'usuarios', label: 'Usuarios y perfiles', icon: UserRoundCog },\n  { id: 'auditoria', label: 'Historial de cambios', icon: ShieldAlert },
   { id: 'automatizacion', label: 'Automatización y alertas', icon: Gauge },
   { id: 'integraciones', label: 'Microsoft 365', icon: ArrowLeftRight },
 ] as const;
@@ -41,7 +41,7 @@ const PAGE_TITLES: Record<string, { eyebrow: string; title: string }> = {
   dashboard: { eyebrow: 'PROCESSONE / PROCESOS DE NEGOCIO', title: 'Panel ejecutivo' },
   proyectos: { eyebrow: 'PORTAFOLIO / INICIATIVAS', title: 'Gestión de proyectos' },
   iniciativas: { eyebrow: 'ESTRATEGIA / OBJETIVOS', title: 'Iniciativas del departamento' },
-  usuarios: { eyebrow: 'ADMINISTRACIÓN / IDENTIDAD', title: 'Usuarios y perfiles' },
+  usuarios: { eyebrow: 'ADMINISTRACIÓN / IDENTIDAD', title: 'Usuarios y perfiles' },\n  auditoria: { eyebrow: 'ADMINISTRACIÓN / AUDITORÍA', title: 'Historial de cambios' },
   tareas: { eyebrow: 'EJECUCIÓN / TRABAJO DEL EQUIPO', title: 'Gestión de tareas' },
   equipo: { eyebrow: 'RECURSOS / DISPONIBILIDAD', title: 'Equipo y capacidad' },
   raid: { eyebrow: 'GOBIERNO / REGISTRO RAID', title: 'Riesgos y decisiones' },
