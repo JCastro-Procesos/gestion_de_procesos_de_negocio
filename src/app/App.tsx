@@ -8,7 +8,8 @@ import { DEMO_WORKSPACE } from '../data/demo';
 import { createEmptyWorkspace } from '../data/storage';
 import { importCsv, importJson } from '../data/exchange';
 
-const AuditPage = lazy(() => import('../features/audit/AuditPage').then((module) => ({ default: module.AuditPage })));\nconst InitiativesPage = lazy(() => import('../features/initiatives/InitiativesPage').then((module) => ({ default: module.InitiativesPage })));
+const AuditPage = lazy(() => import('../features/audit/AuditPage').then((module) => ({ default: module.AuditPage })));
+const InitiativesPage = lazy(() => import('../features/initiatives/InitiativesPage').then((module) => ({ default: module.InitiativesPage })));
 const UsersPage = lazy(() => import('../features/users/UsersPage').then((module) => ({ default: module.UsersPage })));
 const Dashboard = lazy(() => import('../features/dashboard/Dashboard').then((module) => ({ default: module.Dashboard })));
 const ProjectsPage = lazy(() => import('../features/projects/ProjectsPage').then((module) => ({ default: module.ProjectsPage })));
