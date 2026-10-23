@@ -1,5 +1,5 @@
 import {useEffect,useState} from 'react';
-import type {CurrentUser} from '../../data/processoneApi';
+import type {CurrentUser} from '../data/processoneApi';
 type Props={user:CurrentUser;onNavigate:(page:string)=>void};
 export function FirstRunWelcome({user,onNavigate}:Props){
  const key='processone-welcome-v1-'+user.id;
