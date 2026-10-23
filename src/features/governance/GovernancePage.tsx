@@ -1,3 +1,4 @@
+import {GovernanceRules} from './GovernanceRules';
 import { useEffect, useState } from 'react';
 import type { Workspace } from '../../domain/model';
 import { api, session, type CurrentUser } from '../../data/processoneApi';
@@ -25,7 +26,7 @@ export function GovernancePage({workspace}:{workspace:Workspace}){
   catch(e){setError(e instanceof Error?e.message:String(e));}finally{setBusy(false);}
  };
  const visible=items.filter(i=>filter==='Todos'||i.kind===filter);
- return <div className="page-stack">
+ return <div className="page-stack"><GovernanceRules workspace={workspace}/>
   <section className="itm-planning-panel">
    <h2>Gobierno y autorizaciones</h2>
    <p>Solicitudes y decisiones compartidas en MySQL, con identidad autenticada y bitácora del servidor.</p>
