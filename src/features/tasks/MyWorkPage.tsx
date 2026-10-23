@@ -1,6 +1,6 @@
 import {useEffect,useState} from 'react';
 import type {Workspace,Task} from '../../domain/model';
-import {api,session,type CurrentUser} from '../../data/processoneApi';
+import {session,type CurrentUser} from '../../data/processoneApi';
 type Props={workspace:Workspace;onOpenProject:(id:string)=>void;onSaveTask:(task:Task,isNew:boolean)=>void};
 export function MyWorkPage({workspace,onOpenProject,onSaveTask}:Props){
  const [user,setUser]=useState<CurrentUser|null>(null),[error,setError]=useState('');
