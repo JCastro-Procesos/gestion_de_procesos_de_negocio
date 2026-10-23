@@ -6,6 +6,7 @@ export function UsersPage(){
  const [current,setCurrent]=useState<CurrentUser|null>(null),[users,setUsers]=useState<User[]>([]);
  const [name,setName]=useState(''),[email,setEmail]=useState(''),[role,setRole]=useState<ProcessOneRole>('ingeniero');
  const [error,setError]=useState(''),[message,setMessage]=useState(''),[busy,setBusy]=useState(false);
+ const [oldPassword,setOldPassword]=useState(''),[newPassword,setNewPassword]=useState('');
  const reload=async()=>{const r=await api<{users:User[]}>('users');setUsers(r.users);};
  useEffect(()=>{void session().then(setCurrent).catch(e=>setError(String(e)));void reload().catch(e=>setError(String(e)));},[]);
  const create=async(e:React.FormEvent)=>{e.preventDefault();setBusy(true);setError('');setMessage('');try{
@@ -34,5 +35,5 @@ export function UsersPage(){
  <button onClick={()=>void edit(u)}>Editar</button><button onClick={()=>void toggle(u)}>{u.active?'Desactivar':'Activar'}</button>
  {!!u.invitation_pending&&!!u.active&&<button onClick={()=>void resend(u)}>Reenviar invitación</button>}</div>}
  </div>)}</div>
- </section></div>;
+ </section><section className="itm-planning-panel"><h3>Cambiar mi contraseña</h3><form style={{display:'grid',gap:9,maxWidth:450}} onSubmit={async e=>{e.preventDefault();setError('');try{await api('password_change','POST',{oldPassword,newPassword});setOldPassword('');setNewPassword('');setMessage('Contraseña actualizada correctamente.');}catch(e){setError(String(e));}}}><label>Contraseña actual<input className="input" required type="password" value={oldPassword} onChange={e=>setOldPassword(e.target.value)}/></label><label>Nueva contraseña (mínimo 12 caracteres)<input className="input" required minLength={12} type="password" value={newPassword} onChange={e=>setNewPassword(e.target.value)}/></label><button className="top-add-button" type="submit">Actualizar mi contraseña</button></form></section></div>;
 }
