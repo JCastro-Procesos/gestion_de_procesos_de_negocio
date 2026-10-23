@@ -113,4 +113,36 @@ if($action==='initiatives' && in_array($method,['PUT','DELETE'],true)){
  logAction($db,$uid,'update','initiative',(string)$id);$db->commit();reply(200,['ok'=>true]);}
  catch(Throwable $e){$db->rollBack();reply(500,['error'=>'No fue posible actualizar']);}
 }
+
+if($action==='governance' && $method==='GET'){
+ $items=$db->query("SELECT g.id,g.kind,g.project_id projectId,g.title,g.description,g.severity,g.status,g.owner,g.reviewer_id reviewerId,g.comment,g.created_at createdAt,g.updated_at updatedAt,u.name reviewerName FROM po_governance_items g LEFT JOIN po_users u ON u.id=g.reviewer_id ORDER BY g.created_at DESC LIMIT 500")->fetchAll();
+ $events=$db->query("SELECT e.id,e.item_id itemId,e.action,e.previous_status beforeStatus,e.next_status afterStatus,e.note,e.created_at at,u.name actor FROM po_governance_events e JOIN po_users u ON u.id=e.actor_id ORDER BY e.id DESC LIMIT 200")->fetchAll();
+ reply(200,['items'=>$items,'events'=>$events]);
+}
+if($action==='governance' && $method==='POST'){
+ csrf();if(level($role)<2)reply(403,['error'=>'No tienes permisos para registrar solicitudes']);
+ $d=input();$id=(string)($d['id']??'');$kind=(string)($d['kind']??'');$title=trim((string)($d['title']??''));$severity=(string)($d['severity']??'Menor');
+ if(!preg_match('/^[a-f0-9-]{36}$/i',$id)||!in_array($kind,['Solicitud','Entregable','Cambio'],true)||$title===''||mb_strlen($title)>190||!in_array($severity,['Menor','Mayor','Crítico'],true))reply(400,['error'=>'Solicitud inválida']);
+ $db->beginTransaction();
+ try {
+  $q=$db->prepare("INSERT INTO po_governance_items(id,kind,project_id,title,description,severity,owner,comment,created_by) VALUES (?,?,?,?,?,?,?,'',?)");
+  $q->execute([$id,$kind,($d['projectId']??'')?:null,$title,substr((string)($d['description']??''),0,10000),$severity,substr((string)($d['owner']??''),0,100),$uid]);
+  $db->prepare("INSERT INTO po_governance_events(item_id,actor_id,action,next_status) VALUES (?,?,'Crear solicitud','Pendiente')")->execute([$id,$uid]);
+  logAction($db,$uid,'create','governance',$id);$db->commit();reply(201,['ok'=>true]);
+ }catch(Throwable $e){if($db->inTransaction())$db->rollBack();reply(500,['error'=>'No fue posible registrar la solicitud']);}
+}
+if($action==='governance' && $method==='PUT'){
+ csrf();if(level($role)<3)reply(403,['error'=>'Solo Gerencia, Dirección o Administración pueden decidir']);
+ $d=input();$id=(string)($d['id']??'');$status=(string)($d['status']??'');$note=trim((string)($d['note']??''));
+ if(!in_array($status,['Aprobado','Rechazado','Devuelto'],true)||mb_strlen($note)>10000||$note==='')reply(400,['error'=>'Decisión inválida: agrega una justificación']);
+ $db->beginTransaction();
+ try {
+  $q=$db->prepare('SELECT status FROM po_governance_items WHERE id=? FOR UPDATE');$q->execute([$id]);$old=$q->fetchColumn();
+  if($old===false){$db->rollBack();reply(404,['error'=>'Solicitud inexistente']);}
+  if(!in_array($old,['Pendiente','Devuelto'],true)){$db->rollBack();reply(409,['error'=>'La solicitud ya fue resuelta. Actualiza la vista.']);}
+  $db->prepare('UPDATE po_governance_items SET status=?,reviewer_id=?,comment=? WHERE id=?')->execute([$status,$uid,$note,$id]);
+  $db->prepare("INSERT INTO po_governance_events(item_id,actor_id,action,previous_status,next_status,note) VALUES (?,?,'Decisión',?,?,?)")->execute([$id,$uid,$old,$status,$note]);
+  logAction($db,$uid,'decide','governance',$id);$db->commit();reply(200,['ok'=>true]);
+ }catch(Throwable $e){if($db->inTransaction())$db->rollBack();reply(500,['error'=>'No fue posible registrar la decisión']);}
+}
 reply(404,['error'=>'Ruta no encontrada']);
