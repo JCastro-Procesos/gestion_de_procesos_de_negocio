@@ -76,7 +76,10 @@ if($action==='password_forgot' && $method==='POST'){
  // Respuesta uniforme para evitar enumeración de usuarios.
  if(filter_var($email,FILTER_VALIDATE_EMAIL)){
   $q=$db->prepare('SELECT id FROM po_users WHERE email=? AND active=1 AND invitation_pending=0');$q->execute([$email]);$id=$q->fetchColumn();
-  if($id){$token=authToken($db,(int)$id,'reset',1);sendAuthEmail($settings,$email,'Restablecer contraseña ProcessOne',authLink($settings,$token,'reset'));}
+  if($id){
+   $recent=$db->prepare("SELECT COUNT(*) FROM po_auth_tokens WHERE user_id=? AND purpose='reset' AND created_at>DATE_SUB(NOW(),INTERVAL 15 MINUTE)");$recent->execute([$id]);
+   if((int)$recent->fetchColumn()<1){$token=authToken($db,(int)$id,'reset',1);sendAuthEmail($settings,$email,'Restablecer contraseña ProcessOne',authLink($settings,$token,'reset'));}
+  }
  }
  reply(200,['ok'=>true,'message'=>'Si existe una cuenta activa, recibirás instrucciones por correo.']);
 }
@@ -106,7 +109,7 @@ if($action==='workspace' && $method==='GET'){
  reply(200,['workspace'=>$payload,'revision'=>$w?(int)$w['revision']:0]);
 }
 if($action==='workspace' && $method==='PUT'){
- csrf();$d=input();$payload=$d['workspace']??null;$rev=$d['revision']??null;
+ csrf();if(level($role)<2)reply(403,['error'=>'Permiso insuficiente para modificar el espacio compartido']);$d=input();$payload=$d['workspace']??null;$rev=$d['revision']??null;
  if(!is_array($payload)||!is_int($rev)||!isset($payload['projects'],$payload['tasks'],$payload['members'])||!is_array($payload['projects'])||!is_array($payload['tasks']))reply(400,['error'=>'Datos inválidos']);
  $json=json_encode($payload,JSON_UNESCAPED_UNICODE|JSON_THROW_ON_ERROR);
  if(strlen($json)>1500000)reply(413,['error'=>'Espacio demasiado grande']);
@@ -146,7 +149,7 @@ if($action==='users' && $method==='PUT'){
  if($id<1||!in_array($newRole,['direccion','gerencia','especialista','ingeniero'],true)||!is_bool($active)||mb_strlen($name)<2||mb_strlen($name)>120)reply(400,['error'=>'Datos inválidos']);
  $q=$db->prepare("UPDATE po_users SET name=?,role=?,active=? WHERE id=? AND role<>'admin'");
  $q->execute([$name,$newRole,$active?1:0,$id]);
- if($q->rowCount()===0)reply(404,['error'=>'Usuario no encontrado o sin cambios']);
+ if($q->rowCount()===0){$check=$db->prepare("SELECT id FROM po_users WHERE id=? AND role<>'admin'");$check->execute([$id]);if(!$check->fetchColumn())reply(404,['error'=>'Usuario no encontrado']);}
  if(!$active)$db->prepare('UPDATE po_auth_tokens SET consumed_at=NOW() WHERE user_id=? AND consumed_at IS NULL')->execute([$id]);
  logAction($db,$uid,'update','user',(string)$id);reply(200,['ok'=>true]);
 }
