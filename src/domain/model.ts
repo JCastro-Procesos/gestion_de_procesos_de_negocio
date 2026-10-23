@@ -8,12 +8,12 @@ export type RaidSeverity = 'Baja' | 'Media' | 'Alta' | 'Crítica';
 export type RaidStatus = 'Abierto' | 'En tratamiento' | 'Escalado' | 'Cerrado';
 
 export interface Methodology { id: number; name: string; description: string; when: string; tools: string[]; outputs: string[]; result: string; }
-export interface Activity { id: string; name: string; deliverable: string; ownerId: string; startDate: string; dueDate: string; status: StageStatus; progress: number; }
+export interface Activity { id: string; name: string; deliverable: string; ownerId: string; startDate: string; dueDate: string; status: StageStatus; progress: number; evidenceUrl?: string; verifiedBy?: string; verifiedAt?: string; }
 export interface Stage { id: string; projectId: string; order: number; name: string; objective: string; startDate: string; dueDate: string; status: StageStatus; progress: number; activities: Activity[]; }
 export interface Project { id: string; name: string; area: string; priority?: 'Baja' | 'Media' | 'Alta'; scopeAreas?: string[]; ownerId: string; sponsor: string; methodologyId: number; status: ProjectStatus; semaforo: Semaforo; startDate: string; dueDate: string; goal: string; description: string; createdAt: string; updatedAt: string; externalCalendarEventId?: string; }
 export interface Subtask { id: string; title: string; done: boolean; }
 export interface Task { id: string; projectId: string; stageId: string; title: string; description: string; assigneeId: string; status: TaskStatus; priority: TaskPriority; estimatedHours: number; actualHours: number; startDate: string; dueDate: string; subtasks: Subtask[]; externalToDoTaskId?: string; externalToDoListId?: string; timerStartedAt?: string; }
-export interface RaidItem { id: string; projectId: string; type: RaidType; severity: RaidSeverity; description: string; ownerId: string; dueDate: string; status: RaidStatus; response: string; createdAt: string; }
+export interface RaidItem { id: string; projectId: string; type: RaidType; severity: RaidSeverity; description: string; ownerId: string; dueDate: string; status: RaidStatus; response: string; createdAt: string; relatedTaskId?: string; relatedStageId?: string; }
 export interface TeamMember { id: string; name: string; role: string; capacityHours: number; email: string; color: string; }
 export interface TimeLog { id: string; taskId: string; memberId: string; startedAt: string; endedAt: string; seconds: number; source: 'Temporizador' | 'Manual'; note: string; }
 export interface GraphSettings { tenantId: string; clientId: string; redirectUri: string; accountType: 'organizations' | 'common'; }
