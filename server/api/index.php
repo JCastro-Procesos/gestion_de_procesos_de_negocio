@@ -24,7 +24,7 @@ function input():array { $raw=file_get_contents('php://input'); if(strlen($raw)>
 function csrf():void { if(!hash_equals($_SESSION['csrf']??'',$_SERVER['HTTP_X_CSRF_TOKEN']??''))reply(403,['error'=>'Sesión inválida']); }
 function member(PDO $db):array {
  if(empty($_SESSION['uid']))reply(401,['error'=>'Inicia sesión']);
- $q=$db->prepare('SELECT id,name,email,role,active FROM po_users WHERE id=? LIMIT 1');$q->execute([$_SESSION['uid']]);$u=$q->fetch();
+ $q=$db->prepare('SELECT id,name,email,role,active,avatar_animal FROM po_users WHERE id=? LIMIT 1');$q->execute([$_SESSION['uid']]);$u=$q->fetch();
  if(!$u || !$u['active']) { session_destroy(); reply(401,['error'=>'Acceso deshabilitado']); }
  return $u;
 }
@@ -96,6 +96,14 @@ if($action==='session' && $method==='GET'){
 }
 if($action==='logout' && $method==='POST'){csrf();session_destroy();reply(200,['ok'=>true]);}
 $u=member($db);$uid=(int)$u['id'];$role=$u['role'];
+if($action==='profile' && $method==='PUT'){
+ csrf();$d=input();$name=trim((string)($d['name']??''));$avatar=(string)($d['avatar_animal']??'');
+ $allowed=['🦊','🐯','🦁','🐼','🐻','🦉','🐬','🦋','🐢','🦄','🐺','🦜',''];
+ if(mb_strlen($name)<2||mb_strlen($name)>120||!in_array($avatar,$allowed,true))reply(400,['error'=>'Nombre o avatar inválido']);
+ $db->prepare('UPDATE po_users SET name=?,avatar_animal=? WHERE id=?')->execute([$name,$avatar,$uid]);
+ logAction($db,$uid,'update_profile','user',(string)$uid);
+ reply(200,['ok'=>true,'user'=>member($db)]);
+}
 if($action==='workspace' && $method==='GET'){
  $q=$db->query("SELECT payload,revision FROM po_workspace WHERE id='main' LIMIT 1");$w=$q->fetch();
  $payload=$w?json_decode($w['payload'],true):null;
