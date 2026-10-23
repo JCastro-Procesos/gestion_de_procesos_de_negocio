@@ -1,22 +1,65 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { Workspace } from '../../domain/model';
-type Item={id:string;kind:'Solicitud'|'Entregable'|'Cambio';projectId:string;title:string;description:string;severity:'Menor'|'Mayor'|'Crítico';status:'Pendiente'|'Aprobado'|'Rechazado'|'Devuelto';owner:string;reviewer:string;comment:string;createdAt:string;updatedAt:string};
-type Event={id:string;at:string;action:string;itemId:string;before:string;after:string;actor:string};
-const KEY='itm-governance-preview-v1',LOG='itm-governance-preview-audit-v1';
-function read<T>(key:string,fallback:T):T{try{return JSON.parse(localStorage.getItem(key)||'null')??fallback;}catch{return fallback;}}
-const field:React.CSSProperties={padding:'8px 10px',border:'1px solid #dfe6f0',borderRadius:8,fontSize:11,width:'100%'};
-const button:React.CSSProperties={...field,width:'auto',background:'#eaf1fb',color:'#243b67',fontWeight:700,cursor:'pointer'};
+import { api, session, type CurrentUser } from '../../data/processoneApi';
+
+type Item = {id:string;kind:'Solicitud'|'Entregable'|'Cambio';projectId:string|null;title:string;description:string;severity:'Menor'|'Mayor'|'Crítico';status:'Pendiente'|'Aprobado'|'Rechazado'|'Devuelto';owner:string;reviewerName:string|null;comment:string;createdAt:string};
+type Event = {id:number;itemId:string;action:string;actor:string;at:string;beforeStatus:string|null;afterStatus:string|null};
+const field:React.CSSProperties={padding:'9px',border:'1px solid #dfe6f0',borderRadius:8,width:'100%'};
 export function GovernancePage({workspace}:{workspace:Workspace}){
- const [items,setItems]=useState<Item[]>(()=>read(KEY,[]));const [events,setEvents]=useState<Event[]>(()=>read(LOG,[]));const [kind,setKind]=useState<Item['kind']>('Solicitud');const [title,setTitle]=useState('');const [description,setDescription]=useState('');const [projectId,setProjectId]=useState('');const [owner,setOwner]=useState('');const [severity,setSeverity]=useState<Item['severity']>('Menor');const [reviewer,setReviewer]=useState('');const [note,setNote]=useState('');const [filter,setFilter]=useState('Todos');
- const commit=(next:Item[],action:string,itemId:string,before:string,after:string)=>{const log=[{id:crypto.randomUUID(),at:new Date().toISOString(),action,itemId,before,after,actor:'Usuario local sin verificar'},...events];setItems(next);setEvents(log);localStorage.setItem(KEY,JSON.stringify(next));localStorage.setItem(LOG,JSON.stringify(log));};
- const create=()=>{if(!title.trim())return;const item:Item={id:crypto.randomUUID(),kind,projectId,title:title.trim(),description,severity,status:'Pendiente',owner,reviewer,comment:'',createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()};commit([item,...items],'Crear solicitud',item.id,'',JSON.stringify(item));setTitle('');setDescription('');};
- const decide=(item:Item,status:Item['status'])=>{const next={...item,status,reviewer,comment:note,updatedAt:new Date().toISOString()};commit(items.map(x=>x.id===item.id?next:x),'Cambiar estado',item.id,JSON.stringify(item),JSON.stringify(next));setNote('');};
- const visible=items.filter(i=>filter==='Todos'||i.kind===filter),pending=items.filter(i=>i.status==='Pendiente').length;
- return <div className="page-stack"><section style={{background:'#fff',border:'1px solid #e4e9f2',borderRadius:12,padding:16,display:'grid',gap:12}}><div><strong style={{fontSize:17,color:'#243b67'}}>Gobierno y autorizaciones</strong><p style={{fontSize:12,color:'#7c89a0'}}>Política de creación, aprobaciones de entregables, control de cambios y portal de responsables.</p></div>
- <div style={{background:'#fff4e5',border:'1px solid #eacda3',borderRadius:8,padding:12,fontSize:11,color:'#80511a'}}><b>Modo de preparación local.</b> Este módulo todavía NO ejecuta aprobaciones corporativas: los usuarios no están autenticados, las decisiones no tienen firma verificable y la bitácora local no es evidencia de auditoría. El backend seguro Supabase/Entra se entrega como migración y guía, pendiente de configurar credenciales, RLS y conexión.</div>
- <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(150px,1fr))',gap:8}}>{[['Solicitudes',items.length],['Pendientes',pending],['Aprobadas',items.filter(i=>i.status==='Aprobado').length],['Cambios críticos',items.filter(i=>i.kind==='Cambio'&&i.severity==='Crítico'&&i.status==='Pendiente').length]].map(([label,value])=><div key={label} style={{background:'#f5f8fc',borderRadius:8,padding:12}}><small>{label}</small><b style={{display:'block',fontSize:20,color:'#294a80'}}>{value}</b></div>)}</div>
- <strong style={{fontSize:12,color:'#243b67'}}>Registrar solicitud de revisión</strong><form onSubmit={e=>{e.preventDefault();create();}} style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(180px,1fr))',gap:8}}><label style={{fontSize:11}}>Tipo<select style={field} value={kind} onChange={e=>setKind(e.target.value as Item['kind'])}><option>Solicitud</option><option>Entregable</option><option>Cambio</option></select></label><label style={{fontSize:11}}>Proyecto<select style={field} value={projectId} onChange={e=>setProjectId(e.target.value)}><option value="">General</option>{workspace.projects.map(p=><option key={p.id} value={p.id}>{p.name}</option>)}</select></label><label style={{fontSize:11}}>Solicitante / responsable<select style={field} value={owner} onChange={e=>setOwner(e.target.value)}><option value="">Sin asignar</option>{workspace.members.map(m=><option key={m.id} value={m.id}>{m.name}</option>)}</select></label><label style={{fontSize:11}}>Impacto del cambio<select style={field} value={severity} onChange={e=>setSeverity(e.target.value as Item['severity'])}><option>Menor</option><option>Mayor</option><option>Crítico</option></select></label><label style={{fontSize:11}}>Título<input required style={field} value={title} onChange={e=>setTitle(e.target.value)}/></label><label style={{fontSize:11}}>Justificación y evidencia<textarea style={field} value={description} onChange={e=>setDescription(e.target.value)}/></label><button type="submit" style={{...button,alignSelf:'end'}}>Registrar para revisión</button></form>
- <div style={{fontSize:11,color:'#65758c'}}><b>Política propuesta:</b> solicitudes de proyecto requieren evaluación previa; entregables requieren evidencia y validación; cambios menores se revisan operativamente, mayores por gerencia y críticos requieren escalamiento y posible suspensión preventiva. Las facultades definitivas deberán validarse con ITM.</div></section>
- <section style={{background:'#fff',border:'1px solid #e4e9f2',borderRadius:12,padding:16,display:'grid',gap:10}}><div style={{display:'flex',justifyContent:'space-between',flexWrap:'wrap',gap:8}}><strong style={{fontSize:13,color:'#243b67'}}>Bandeja de responsables y decisiones</strong><select style={{...field,maxWidth:180}} value={filter} onChange={e=>setFilter(e.target.value)}><option>Todos</option><option>Solicitud</option><option>Entregable</option><option>Cambio</option></select></div><div style={{display:'flex',gap:8,flexWrap:'wrap'}}><label style={{fontSize:11}}>Revisor (simulación)<select style={field} value={reviewer} onChange={e=>setReviewer(e.target.value)}><option value="">Sin identificar</option>{workspace.members.map(m=><option key={m.id} value={m.id}>{m.name}</option>)}</select></label><label style={{fontSize:11}}>Comentario de revisión<input style={field} value={note} onChange={e=>setNote(e.target.value)} placeholder="Motivo / observación"/></label></div><div style={{overflowX:'auto'}}><table className="data-table"><thead><tr><th>Solicitud</th><th>Proyecto</th><th>Impacto</th><th>Estado</th><th>Acciones de simulación</th></tr></thead><tbody>{visible.map(item=><tr key={item.id}><td><b>{item.title}</b><small style={{display:'block'}}>{item.kind} · {item.description}</small></td><td>{workspace.projects.find(p=>p.id===item.projectId)?.name||'General'}</td><td>{item.severity}</td><td>{item.status}</td><td>{item.status==='Pendiente'||item.status==='Devuelto'?<div style={{display:'flex',gap:5}}>{(['Aprobado','Rechazado','Devuelto'] as const).map(s=><button key={s} style={button} onClick={()=>decide(item,s)}>{s}</button>)}</div>:item.comment||'Registrado'}</td></tr>)}</tbody></table>{!visible.length&&<p style={{fontSize:11}}>Sin solicitudes en esta vista.</p>}</div></section>
- <section style={{background:'#fff',border:'1px solid #e4e9f2',borderRadius:12,padding:16}}><strong style={{fontSize:13,color:'#243b67'}}>Bitácora de simulación</strong><p style={{fontSize:11,color:'#8290a4'}}>Historial local modificable desde el navegador; no sustituye la auditoría de Supabase.</p><div style={{maxHeight:220,overflow:'auto'}}>{events.slice(0,35).map(e=><div key={e.id} style={{fontSize:11,padding:7,borderBottom:'1px solid #eef1f6'}}>{e.at} · {e.action} · {e.actor} · {e.itemId.slice(0,8)}</div>)}</div></section></div>;
+ const [items,setItems]=useState<Item[]>([]),[events,setEvents]=useState<Event[]>([]);
+ const [user,setUser]=useState<CurrentUser|null>(null),[error,setError]=useState(''),[busy,setBusy]=useState(false);
+ const [kind,setKind]=useState<Item['kind']>('Solicitud'),[title,setTitle]=useState(''),[description,setDescription]=useState('');
+ const [projectId,setProjectId]=useState(''),[severity,setSeverity]=useState<Item['severity']>('Menor'),[owner,setOwner]=useState('');
+ const [note,setNote]=useState(''),[filter,setFilter]=useState('Todos');
+ const canCreate=!!user&&['admin','direccion','gerencia','especialista'].includes(user.role);
+ const canDecide=!!user&&['admin','direccion','gerencia'].includes(user.role);
+ const load=async()=>{const r=await api<{items:Item[];events:Event[]}>('governance');setItems(r.items);setEvents(r.events);};
+ useEffect(()=>{void session().then(setUser).catch(e=>setError(String(e)));void load().catch(e=>setError(e instanceof Error?e.message:String(e)));},[]);
+ const create=async(e:React.FormEvent)=>{e.preventDefault();setBusy(true);setError('');try{
+  await api('governance','POST',{id:crypto.randomUUID(),kind,title,description,projectId,severity,owner});
+  setTitle('');setDescription('');await load();
+ }catch(e){setError(e instanceof Error?e.message:String(e));}finally{setBusy(false);}};
+ const decide=async(item:Item,status:'Aprobado'|'Rechazado'|'Devuelto')=>{
+  if(!note.trim()){setError('Escribe una justificación antes de registrar la decisión.');return;}
+  setBusy(true);setError('');try{await api('governance','PUT',{id:item.id,status,note});setNote('');await load();}
+  catch(e){setError(e instanceof Error?e.message:String(e));}finally{setBusy(false);}
+ };
+ const visible=items.filter(i=>filter==='Todos'||i.kind===filter);
+ return <div className="page-stack">
+  <section className="itm-planning-panel">
+   <h2>Gobierno y autorizaciones</h2>
+   <p>Solicitudes y decisiones compartidas en MySQL, con identidad autenticada y bitácora del servidor.</p>
+   {error&&<div role="alert" className="po-auth-error">{error}</div>}
+   <div style={{display:'flex',gap:15,flexWrap:'wrap'}}>
+    <strong>Solicitudes: {items.length}</strong><strong>Pendientes: {items.filter(i=>i.status==='Pendiente').length}</strong>
+    <strong>Aprobadas: {items.filter(i=>i.status==='Aprobado').length}</strong>
+   </div>
+  </section>
+  {canCreate&&<section className="itm-planning-panel">
+   <h3>Registrar solicitud de revisión</h3>
+   <form onSubmit={create} style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(180px,1fr))',gap:12}}>
+    <label>Tipo<select style={field} value={kind} onChange={e=>setKind(e.target.value as Item['kind'])}><option>Solicitud</option><option>Entregable</option><option>Cambio</option></select></label>
+    <label>Proyecto<select style={field} value={projectId} onChange={e=>setProjectId(e.target.value)}><option value="">General</option>{workspace.projects.map(p=><option key={p.id} value={p.id}>{p.name}</option>)}</select></label>
+    <label>Impacto<select style={field} value={severity} onChange={e=>setSeverity(e.target.value as Item['severity'])}><option>Menor</option><option>Mayor</option><option>Crítico</option></select></label>
+    <label>Responsable<select style={field} value={owner} onChange={e=>setOwner(e.target.value)}><option value="">Sin asignar</option>{workspace.members.map(m=><option key={m.id} value={m.id}>{m.name}</option>)}</select></label>
+    <label>Título<input style={field} required maxLength={190} value={title} onChange={e=>setTitle(e.target.value)}/></label>
+    <label>Justificación<textarea style={field} value={description} onChange={e=>setDescription(e.target.value)}/></label>
+    <button className="top-add-button" type="submit" disabled={busy}>Registrar solicitud</button>
+   </form>
+  </section>}
+  <section className="itm-planning-panel">
+   <h3>Bandeja de decisiones</h3>
+   <label>Filtrar <select style={{...field,maxWidth:190}} value={filter} onChange={e=>setFilter(e.target.value)}><option>Todos</option><option>Solicitud</option><option>Entregable</option><option>Cambio</option></select></label>
+   {canDecide&&<label style={{display:'block',marginTop:12}}>Justificación de la decisión<input style={field} value={note} onChange={e=>setNote(e.target.value)} placeholder="Motivo obligatorio"/></label>}
+   <div style={{overflowX:'auto'}}><table className="data-table"><thead><tr><th>Solicitud</th><th>Proyecto</th><th>Impacto</th><th>Estado</th><th>Decisión</th></tr></thead><tbody>
+    {visible.map(i=><tr key={i.id}><td><b>{i.title}</b><small style={{display:'block'}}>{i.kind} · {i.description}</small></td>
+     <td>{workspace.projects.find(p=>p.id===i.projectId)?.name||'General'}</td><td>{i.severity}</td><td>{i.status}</td>
+     <td>{canDecide&&['Pendiente','Devuelto'].includes(i.status)?<div style={{display:'flex',gap:5}}>{(['Aprobado','Rechazado','Devuelto'] as const).map(s=><button key={s} disabled={busy} onClick={()=>void decide(i,s)}>{s}</button>)}</div>:i.reviewerName||'Sin resolver'}</td></tr>)}
+   </tbody></table></div>
+   {visible.length===0&&<p>No hay solicitudes registradas.</p>}
+  </section>
+  <section className="itm-planning-panel"><h3>Historial de decisiones</h3>
+   {events.slice(0,40).map(e=><div key={e.id} style={{padding:8,borderBottom:'1px solid #e8edf4',fontSize:12}}>{e.at} · {e.actor} · {e.action} · {e.afterStatus||''}</div>)}
+  </section>
+ </div>;
 }
