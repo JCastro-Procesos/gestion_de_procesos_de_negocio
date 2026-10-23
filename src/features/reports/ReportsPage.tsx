@@ -1,16 +1,17 @@
+import {IndicatorGoals} from './IndicatorGoals';
 import { useMemo, useState } from 'react';
 import { ReportDesigner, ProjectsVisual, filterReportProjects, readReportSettings } from './ReportDesigner';
 import type { ReportFilters } from './ReportDesigner';
 import { Bar, BarChart, CartesianGrid, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { ArrowDownToLine, Printer, CheckCircle2, Clock3, FileBarChart, ShieldAlert, Target } from 'lucide-react';
-import type { Workspace } from '../../domain/model';
+import type { PerformanceIndicator,Workspace } from '../../domain/model';
 import { executiveMetrics, lateMilestones, memberWorkload, projectProgress } from '../../domain/metrics';
 import { Panel, SectionHeading, Button, Badge, ProgressBar, Avatar, dateLabel } from '../../components/ui';
 import { methodFor } from '../../domain/methodologies';
 import { downloadText } from '../../data/exchange';
 import { StrategicIndicatorsPanel } from './StrategicIndicatorsPanel';
 
-export function ReportsPage({ workspace }: { workspace: Workspace }) {
+export function ReportsPage({ workspace,onSaveIndicators }: { workspace: Workspace;onSaveIndicators:(indicators:PerformanceIndicator[])=>void }) {
   const [filters,setFilters]=useState<ReportFilters>({area:'Todos',status:'Todos',traffic:'Todos',owner:'Todos',method:'Todos'});
   const [settings,setSettings]=useState(readReportSettings);
   const projects=filterReportProjects(workspace,filters);
