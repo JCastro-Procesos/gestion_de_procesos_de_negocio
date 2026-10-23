@@ -1,5 +1,6 @@
 import type {ProcessOneRole} from '../domain/access';
 const ACCESS:Record<string,ProcessOneRole[]>={
+ perfil:['admin','direccion','gerencia','especialista','ingeniero'],
  dashboard:['admin','direccion','gerencia','especialista','ingeniero'],
  proyectos:['admin','direccion','gerencia','especialista','ingeniero'],
  iniciativas:['admin','direccion','gerencia','especialista'],
