@@ -97,7 +97,7 @@ export function App() {
     update((current) => ({ ...current, projects: current.projects.filter((project) => project.id !== projectId), stages: current.stages.filter((stage) => stage.projectId !== projectId), tasks: current.tasks.filter((task) => task.projectId !== projectId), raids: current.raids.filter((item) => item.projectId !== projectId) }));
     setSelectedProjectId(null);
   };
-  const updateStage = (stage: Stage) => update((current) => ({ ...current, stages: current.stages.map((item) => item.id === stage.id ? stage : item) }));
+  const updateStage = (stage: Stage) => { if(stage.status==='Completada' && stage.activities.some(activity=>activity.status!=='Completada'||!activity.deliverable.trim())){flash('Para cerrar una etapa, completa sus actividades y registra los entregables.');return;} update((current) => ({ ...current, stages: current.stages.map((item) => item.id === stage.id ? stage : item) })); };
   const addActivity = (stage: Stage, activity: Stage['activities'][number]) => update((current) => ({ ...current, stages: current.stages.map((item) => item.id === stage.id ? { ...item, activities: [...item.activities, activity] } : item) }));
   const updateActivity = (stage: Stage, activity: Stage['activities'][number]) => update((current) => ({ ...current, stages: current.stages.map((item) => item.id === stage.id ? { ...item, activities: item.activities.map((old) => old.id === activity.id ? activity : old) } : item) }));
 
