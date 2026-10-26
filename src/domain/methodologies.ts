@@ -1,4 +1,4 @@
-import type { Methodology, Stage, TeamMember } from './model';
+import type { Methodology, Stage, TeamMember, Workspace, Project } from './model';
 
 export const METHODOLOGIES: Methodology[] = [
   {
@@ -87,3 +87,26 @@ export function weightedProjectProgress(stages:Stage[],type:'Tecnológico'|'Docu
 }
 
 export const methodFor = (id: number) => METHODOLOGIES.find((method) => method.id === id) ?? METHODOLOGIES[1];
+
+/** Migración conservadora: mantiene IDs de etapas antiguas para no romper tareas, conserva
+ * actividades y evidencias; añade entregables sugeridos sin duplicarlos. */
+export function migrateExistingProject(workspace:Workspace,projectId:string):Workspace{
+ const project=workspace.projects.find(p=>p.id===projectId);
+ if(!project)return workspace;
+ const existing=workspace.stages.filter(s=>s.projectId===projectId).sort((a,b)=>a.order-b.order);
+ if(existing.length===6&&existing.every((s,i)=>s.name===CORPORATE_STAGE_BLUEPRINT[i].name))return workspace;
+ const planType=project.planType||'Optimización';
+ const generated=createStages(projectId,project.startDate,project.dueDate,workspace.members,'Estándar',planType);
+ const used=new Set<string>();
+ const migrated=generated.map((fresh,index)=>{
+  const old=existing[index];
+  if(!old)return {...fresh,activities:fresh.activities.map(a=>({...a,ownerId:project.ownerId||a.ownerId}))};
+  used.add(old.id);
+  const names=new Set(old.activities.map(a=>a.deliverable.trim().toLowerCase()));
+  const additions=fresh.activities.filter(a=>!names.has(a.deliverable.trim().toLowerCase())).map(a=>({...a,ownerId:project.ownerId||a.ownerId}));
+  return {...fresh,id:old.id,startDate:old.startDate||fresh.startDate,dueDate:old.dueDate||fresh.dueDate,status:old.status,progress:old.progress,activities:[...old.activities,...additions]};
+ });
+ // Etapas históricas adicionales se conservan para evitar pérdida de evidencia.
+ const historical=existing.filter(s=>!used.has(s.id)).map((s,i)=>({...s,order:7+i}));
+ return {...workspace,projects:workspace.projects.map((p):Project=>p.id===projectId?{...p,planType}:p),stages:[...workspace.stages.filter(s=>s.projectId!==projectId),...migrated,...historical]};
+}
