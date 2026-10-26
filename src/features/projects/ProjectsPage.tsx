@@ -6,7 +6,7 @@ import { ProjectPlanningPanel } from './ProjectPlanningPanel';
 import { ProjectBudgetPanel } from './ProjectBudgetPanel';
 import { ProjectRequestsPanel, saveProjectRequest } from './ProjectRequestsPanel';
 import type { ProjectRequest } from './ProjectRequestsPanel';
-import { dueDateOverdue } from '../../domain/metrics';
+import { projectProgress, dueDateOverdue } from '../../domain/metrics';
 import { Avatar, Badge, Button, EmptyState, FormField, Modal, Panel, ProgressBar, SectionHeading, SelectInput, StatusBadge, TextArea, TextInput, TrafficBadge, dateLabel } from '../../components/ui';
 
 const STAGE_STATUSES: StageStatus[] = ['Por iniciar', 'En curso', 'En revisión', 'Bloqueada', 'Completada'];
