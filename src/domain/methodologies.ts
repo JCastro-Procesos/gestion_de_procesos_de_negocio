@@ -82,7 +82,7 @@ export function weightedProjectProgress(stages:Stage[],type:'Tecnológico'|'Docu
  const ordered=[...stages].sort((a,b)=>a.order-b.order);
  const weights=ordered.length===6?PROJECT_TYPE_WEIGHTS[type]:ordered.map(()=>100/Math.max(1,ordered.length));
  const total=weights.reduce((a,b)=>a+b,0);
- return total?Math.round(ordered.reduce((sum,stage,i)=>sum+weights[i]*(stage.activities.length?stage.activities.reduce((n,a)=>n+(a.status==='Completada'?1:a.status==='En revisión'?.5:0),0)/stage.activities.length:stage.status==='Completada'?1:0),0)/total*100):0;
+ return total?Math.round(ordered.reduce((sum,stage,i)=>sum+weights[i]*(stage.activities.length?stage.activities.reduce((n,a)=>n+(a.status==='Completada'?1:a.status==='En revisión' ? 0.5 : 0),0)/stage.activities.length:stage.status==='Completada'?1:0),0)/total*100):0;
 }
 
 export const methodFor = (id: number) => METHODOLOGIES.find((method) => method.id === id) ?? METHODOLOGIES[1];
