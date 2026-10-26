@@ -90,7 +90,7 @@ function ProjectEditor({ open, project, workspace, onClose, onSave }: { open: bo
 }
 
 function ProjectDetail({ workspace, project, onBack, onEdit, onDelete, onMigrate, onUpdateStage, onAddActivity, onUpdateActivity, onAddTask, onOpenRaid, toast }: {
-  workspace: Workspace; project: Project; onBack: () => void; onEdit: () => void; onDelete: () => void;
+  workspace: Workspace; project: Project; onBack: () => void; onEdit: () => void; onDelete: () => void; onMigrate: () => void;
   onUpdateStage: (stage: Stage) => void; onAddActivity: (stage: Stage, activity: Stage['activities'][number]) => void;
   onUpdateActivity: (stage: Stage, activity: Stage['activities'][number]) => void; onAddTask: (projectId: string, stageId: string) => void;
   onOpenRaid: (projectId?: string) => void; toast: (message: string) => void;
