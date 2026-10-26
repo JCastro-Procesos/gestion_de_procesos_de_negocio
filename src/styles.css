@@ -159,3 +159,42 @@
 :root{scroll-behavior:smooth}button,input,select,textarea,a{touch-action:manipulation}button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:3px solid #167fba;outline-offset:3px}
 @media(max-width:680px){body{min-width:320px}.po-search-trigger kbd{display:none}.po-search-dialog{max-height:86vh}.po-search-overlay{padding-top:6vh}.po-goal-form{grid-template-columns:1fr}.po-help-anchor{right:10px;bottom:10px}.po-notification-panel{right:-40px}.po-table-scroll{overscroll-behavior-x:contain}}
 @media(prefers-reduced-motion:reduce){:root{scroll-behavior:auto}*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+
+/* ProcessOne · consistencia visual 2026 — sin cambios de lógica */
+:root{--po-kpi-blue:#5d70d9;--po-kpi-gray:#98a2b3;--po-kpi-amber:#e3a022;--po-kpi-teal:#35a58b;--po-kpi-navy:#267765;--po-kpi-purple:#7955ce}
+body{font-size:13px;line-height:1.55;-webkit-font-smoothing:antialiased}
+.page-stack{min-width:0}
+.page-stack .section-heading h1,.page-stack .section-heading h2{letter-spacing:-.025em}
+input,select,textarea{font-size:max(13px,1em)}
+.metric-label{font-size:11px;line-height:1.3;font-weight:700;letter-spacing:.025em}
+.metric-value{font-size:clamp(24px,2.15vw,32px);line-height:1.12;letter-spacing:-.045em}
+.metric-note{font-size:11px;line-height:1.45}
+.itm-portfolio-metrics{gap:12px;align-items:stretch}
+.itm-portfolio-metrics .metric-card{min-height:126px;padding:17px 17px 15px;border:1px solid #e4eaf3;border-top:3px solid var(--po-kpi-blue);border-radius:13px;background:#fff;box-shadow:0 4px 14px rgba(22,38,78,.035)}
+.itm-portfolio-metrics .metric-card::before{display:none}
+.itm-portfolio-metrics .metric-card.metric-indigo{border-top-color:var(--po-kpi-blue)}
+.itm-portfolio-metrics .metric-card.metric-blue{border-top-color:var(--po-kpi-gray)}
+.itm-portfolio-metrics .metric-card.metric-green{border-top-color:var(--po-kpi-teal)}
+.itm-portfolio-metrics .metric-card.metric-amber{border-top-color:var(--po-kpi-amber)}
+.itm-portfolio-metrics .metric-card.metric-red{border-top-color:#dc6472}
+.itm-portfolio-metrics .itm-portfolio-total{background:#fff;color:var(--navy);border-color:#e4eaf3;border-top-color:var(--po-kpi-blue)}
+.itm-portfolio-metrics .itm-portfolio-total .metric-label,.itm-portfolio-metrics .itm-portfolio-total .metric-note{color:#78869c}
+.itm-portfolio-metrics .itm-portfolio-total .metric-value{color:var(--navy)}
+.itm-portfolio-metrics .metric-top{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.itm-portfolio-metrics .metric-label{text-transform:uppercase;font-size:10px;font-weight:800;letter-spacing:.055em;color:#71819a}
+.itm-portfolio-metrics .metric-value{margin:8px 0 3px;font-size:clamp(26px,2.15vw,32px);font-weight:800;color:#182d55}
+.itm-portfolio-metrics .metric-note{font-size:10px;color:#8b98ae;line-height:1.45}
+.itm-portfolio-metrics .itm-metric-symbol{flex:none;color:var(--po-kpi-blue);opacity:.85;stroke-width:1.9}
+.itm-portfolio-metrics .metric-blue .itm-metric-symbol{color:var(--po-kpi-gray)}
+.itm-portfolio-metrics .metric-green .itm-metric-symbol{color:var(--po-kpi-teal)}
+.itm-portfolio-metrics .metric-amber .itm-metric-symbol{color:var(--po-kpi-amber)}
+.itm-portfolio-metrics .metric-red .itm-metric-symbol{color:#dc6472}
+.itm-portfolio-metrics .metric-card:hover{transform:translateY(-2px);box-shadow:0 8px 22px rgba(29,49,92,.08)}
+.itm-portfolio-metrics .metric-card:focus-within{outline:2px solid #6176d8;outline-offset:2px}
+button svg,.nav-link svg,.metric-icon svg{flex-shrink:0;stroke-width:1.9}
+button{min-height:32px}
+button:focus-visible,a:focus-visible,[role="button"]:focus-visible{outline:3px solid #3b7fc7;outline-offset:3px}
+@media(max-width:1100px){.itm-portfolio-metrics{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:760px){.itm-portfolio-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.itm-portfolio-metrics .metric-card{min-height:116px;padding:14px}.itm-portfolio-metrics .metric-value{font-size:27px}}
+@media(max-width:410px){.itm-portfolio-metrics{grid-template-columns:1fr}.itm-portfolio-metrics .metric-card{min-height:100px}}
+@media(prefers-reduced-motion:reduce){.itm-portfolio-metrics .metric-card{transition:none}}
