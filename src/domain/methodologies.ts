@@ -56,6 +56,7 @@ export const CORPORATE_STAGE_BLUEPRINT = [
  {name:'Implementación y estabilización',objective:'Desplegar, capacitar, probar, corregir y estabilizar.',gate:'Solución operativa, pruebas aceptadas y sin incidentes críticos bloqueantes.',deliverables:['Plan de despliegue','Capacitación y comunicación','Solución implementada','Pruebas operativas y aceptación','Incidencias y estabilización']},
  {name:'Cierre y resultados',objective:'Medir beneficios, transferir documentación y cerrar formalmente.',gate:'Resultados verificados o desviaciones aceptadas formalmente; transferencia y cierre autorizados.',deliverables:['Informe de resultados y KPIs','Acta de transferencia','Repositorio actualizado','Lecciones y pendientes','Acta de cierre']}
 ] as const;
+export const DEFAULT_STAGE_BLUEPRINT = CORPORATE_STAGE_BLUEPRINT.map(stage=>({name:stage.name,objective:stage.objective,deliverable:stage.deliverables[0]}));
 export const PROJECT_TYPE_WEIGHTS: Record<'Tecnológico'|'Documentación'|'Optimización',number[]> = {
  'Tecnológico':[10,15,20,15,30,10],
  'Documentación':[10,30,30,15,10,5],
