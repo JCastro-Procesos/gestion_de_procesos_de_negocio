@@ -98,7 +98,7 @@ export function App() {
   const saveProject = (project: Project, mode: 'Express' | 'Estándar' | 'Transformación', isNew: boolean) => {
     update((current) => {
       const next = { ...current, projects: isNew ? [project, ...current.projects] : current.projects.map((item) => item.id === project.id ? project : item) };
-      if (isNew) next.stages = [...next.stages, ...createStages(project.id, project.startDate, project.dueDate, current.members, mode)];
+      if (isNew) next.stages = [...next.stages, ...createStages(project.id, project.startDate, project.dueDate, current.members, mode,project.planType||'Optimización')];
       return next;
     });
   };
