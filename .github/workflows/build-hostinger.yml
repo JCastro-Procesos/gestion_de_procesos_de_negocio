@@ -40,7 +40,10 @@ jobs:
       - name: Incorporar API PHP al paquete
         run: |
           mkdir -p dist-hostinger/api
-          cp server/api/index.php dist-hostinger/api/\n          # setup.php es solo para el aprovisionamiento inicial y nunca se distribuye.
+          cp server/api/index.php dist-hostinger/api/
+          test -s dist-hostinger/api/index.php
+          php -l dist-hostinger/api/index.php
+          # setup.php es solo para el aprovisionamiento inicial y nunca se distribuye.
       - name: Crear ZIP listo para public_html
         run: cd dist-hostinger && zip -r ../processone-hostinger.zip .
       - name: Descargar paquete de publicación
