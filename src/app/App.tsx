@@ -1,7 +1,7 @@
 import { lazy, Suspense, useCallback, useEffect, useState } from 'react';
 import { ArrowLeftRight, BarChart3, BookOpen, ChevronDown, ClipboardList, Database, FolderKanban, Gauge, Plus, ShieldAlert, UsersRound, Target, UserRoundCog } from 'lucide-react';
 import type { GraphSettings, PerformanceIndicator, Project, RaidItem, Stage, Task, TeamMember, Workspace } from '../domain/model';
-import { createStages } from '../domain/methodologies';
+import { createStages, migrateExistingProject } from '../domain/methodologies';
 import { ErrorBanner, Toast } from '../components/ui';
 import { useSharedWorkspace } from './useSharedWorkspace';
 import { DEMO_WORKSPACE } from '../data/demo';
@@ -102,6 +102,7 @@ export function App() {
       return next;
     });
   };
+  const migrateProject = (projectId:string) => { update(current=>migrateExistingProject(current,projectId));flash('Metodología actualizada conservando tareas, etapas históricas y evidencias.'); };
   const deleteProject = (projectId: string) => {
     update((current) => ({ ...current, projects: current.projects.filter((project) => project.id !== projectId), stages: current.stages.filter((stage) => stage.projectId !== projectId), tasks: current.tasks.filter((task) => task.projectId !== projectId), raids: current.raids.filter((item) => item.projectId !== projectId) }));
     setSelectedProjectId(null);
