@@ -1,8 +1,10 @@
 name: Publicar ProcessOne (con aprobación)
 
-# Publicación manual y controlada. Nunca se ejecuta sola.
-# La etapa "publicar" espera la aprobación configurada en el entorno de GitHub.
+# Producción: solo manual, desde main, escribiendo PUBLICAR y con aprobación del entorno.
+# Pruebas: automática al subir cambios a la rama develop (o manual).
 on:
+  push:
+    branches: [develop]
   workflow_dispatch:
     inputs:
       destino:
@@ -18,8 +20,11 @@ on:
 permissions:
   contents: read
 
+env:
+  DESTINO: ${{ inputs.destino || 'pruebas' }}
+
 concurrency:
-  group: processone-deploy-${{ inputs.destino }}
+  group: processone-deploy-${{ inputs.destino || 'pruebas' }}
   cancel-in-progress: false
 
 jobs:
@@ -38,6 +43,7 @@ jobs:
           CONFIRMACION: ${{ inputs.confirmacion }}
         run: |
           test "$CONFIRMACION" = "PUBLICAR" || { echo "::error::Para producción escribe PUBLICAR en confirmación"; exit 1; }
+          test "$GITHUB_REF" = "refs/heads/main" || { echo "::error::Producción solo se publica desde la rama main"; exit 1; }
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
         with:
@@ -47,12 +53,12 @@ jobs:
           node-version: '22'
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - name: Compilar para producción
+      - name: Compilar
         run: pnpm exec tsc -b && pnpm exec vite build --config vite.hostinger.config.ts
       - id: id
         run: echo "release_id=r${GITHUB_RUN_NUMBER}-${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
       - name: Armar y verificar paquete
-        run: bash deploy/build-package.sh "${{ steps.id.outputs.release_id }}"
+        run: bash deploy/build-package.sh "${{ steps.id.outputs.release_id }}" "$DESTINO"
       - uses: actions/upload-artifact@v4
         with:
           name: paquete-${{ steps.id.outputs.release_id }}
@@ -97,7 +103,7 @@ jobs:
         id: deploy
         run: |
           set -euo pipefail
-          ALLOW_EMPTY=0; [ "${{ inputs.destino }}" = "pruebas" ] && ALLOW_EMPTY=1
+          ALLOW_EMPTY=0; if [ "$DESTINO" = "pruebas" ]; then ALLOW_EMPTY=1; fi
           set +e
           cat deploy/remote/common.sh deploy/remote/deploy.sh \
             | ssh hostinger bash -s -- "$DEPLOY_PATH" "$RELEASE_ID" "$EXPECTED_DB" "$ALLOW_EMPTY" | tee deploy.log
@@ -118,7 +124,7 @@ jobs:
         if: always()
         run: |
           {
-            echo "## Publicación ProcessOne · ${{ inputs.destino }}"
+            echo "## Publicación ProcessOne · $DESTINO"
             echo "- Versión: \`$RELEASE_ID\` · commit \`${GITHUB_SHA::7}\` · rama \`${GITHUB_REF_NAME}\`"
             echo "- Aprobada y ejecutada por: ${GITHUB_ACTOR}"
             echo "- Respaldo para reversión: \`${{ steps.deploy.outputs.BACKUP_FILES || 'no generado' }}\`"

@@ -1,0 +1,68 @@
+name: Preparar entorno de pruebas ProcessOne
+
+# Crea la configuración privada de PRUEBAS, aplica el esquema en la base de PRUEBAS
+# y genera la invitación del administrador de pruebas. Nunca toca producción.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: processone-deploy-pruebas
+  cancel-in-progress: false
+
+jobs:
+  preparar:
+    runs-on: ubuntu-latest
+    environment: processone-staging
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verificar configuración del entorno
+        env:
+          DB_NAME: ${{ vars.PROCESSONE_DB_NAME }}
+          DB_USER: ${{ vars.PROCESSONE_DB_USER }}
+          DB_PASSWORD: ${{ secrets.PROCESSONE_DB_PASSWORD }}
+          ADMIN_EMAIL: ${{ vars.PROCESSONE_ADMIN_EMAIL }}
+          SITE_URL: ${{ vars.PROCESSONE_SITE_URL }}
+        run: |
+          for v in DB_NAME DB_USER DB_PASSWORD ADMIN_EMAIL SITE_URL; do
+            [ -n "${!v}" ] || { echo "::error::Falta $v en el entorno processone-staging"; exit 1; }
+          done
+          case "$DB_NAME" in *pruebas*) ;; *) echo "::error::La base debe ser de pruebas"; exit 1;; esac
+          test "$DB_NAME" != "u378754586_processone" || { echo "::error::No se permite la base de producción"; exit 1; }
+      - name: Preparar conexión SSH verificada
+        env:
+          SSH_KEY: ${{ secrets.HOSTINGER_SSH_KEY }}
+          HOST: ${{ vars.HOSTINGER_HOST }}
+          PORT: ${{ vars.HOSTINGER_PORT }}
+          USER_SSH: ${{ vars.HOSTINGER_USER }}
+          FP: ${{ vars.HOSTINGER_HOST_FINGERPRINT }}
+        run: bash deploy/ssh-setup.sh
+      - name: Enviar esquema de base de datos
+        run: |
+          set -euo pipefail
+          ssh hostinger 'umask 077; mkdir -p ~/processone-deploy/incoming/schema'
+          for f in database/processone_mysql.sql database/processone_live_patch.sql \
+                   database/migrations/20261023_governance_mysql.sql database/migrations/20261023_user_invites.sql; do
+            ssh hostinger "umask 077; cat > ~/processone-deploy/incoming/schema/$(basename "$f")" < "$f"
+          done
+      - name: Configurar base y administrador de pruebas
+        env:
+          DB_NAME: ${{ vars.PROCESSONE_DB_NAME }}
+          DB_USER: ${{ vars.PROCESSONE_DB_USER }}
+          DB_PASSWORD: ${{ secrets.PROCESSONE_DB_PASSWORD }}
+          ADMIN_EMAIL: ${{ vars.PROCESSONE_ADMIN_EMAIL }}
+          SITE_URL: ${{ vars.PROCESSONE_SITE_URL }}
+          MAIL_FROM: ${{ vars.PROCESSONE_MAIL_FROM }}
+        run: |
+          set -euo pipefail
+          # Los valores viajan dentro del flujo cifrado de SSH, no como argumentos de comandos.
+          {
+            printf 'PO_DB_NAME=%q\nPO_DB_USER=%q\nPO_DB_PASSWORD=%q\n' "$DB_NAME" "$DB_USER" "$DB_PASSWORD"
+            printf 'PO_ADMIN_EMAIL=%q\nPO_SITE_URL=%q\nPO_MAIL_FROM=%q\n' "$ADMIN_EMAIL" "$SITE_URL" "${MAIL_FROM:-}"
+            cat deploy/remote/common.sh deploy/remote/init-staging.sh
+          } | ssh hostinger bash -s
+      - name: Limpiar clave
+        if: always()
+        run: rm -rf ~/.ssh

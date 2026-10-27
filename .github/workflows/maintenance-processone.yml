@@ -3,10 +3,6 @@ name: Mantenimiento ProcessOne · retirar copia duplicada (con aprobación)
 # Tarea única: mueve public_html/public_html/procesos a ~/processone-backups.
 # No borra archivos. Requiere aprobación del entorno processone-production.
 on:
-  push:
-    branches: [feature/processone-cicd-ssh]
-    paths:
-      - 'deploy/remote/quarantine-duplicate.sh'
   workflow_dispatch:
 
 permissions:
