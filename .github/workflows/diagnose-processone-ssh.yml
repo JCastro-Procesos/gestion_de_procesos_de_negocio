@@ -2,13 +2,6 @@ name: Diagnosticar servidor ProcessOne (solo lectura)
 
 # Verifica la conexión SSH y la estructura real del servidor sin modificar nada.
 on:
-  # Disparador temporal mientras estos workflows no estén en main
-  # (GitHub solo permite "Run workflow" con archivos de la rama principal).
-  push:
-    branches: [feature/processone-cicd-ssh]
-    paths:
-      - '.github/workflows/diagnose-processone-ssh.yml'
-      - 'deploy/remote/diagnose.sh'
   workflow_dispatch:
     inputs:
       destino:

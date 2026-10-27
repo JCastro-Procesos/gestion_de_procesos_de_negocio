@@ -25,11 +25,15 @@ if find "$REL" \( -iname 'setup.php' -o -iname 'config.php' -o -iname '.env*' -o
 fi
 grep -q 'ProcessOne' "$REL/index.html" || die "Paquete sin index.html de ProcessOne"
 php -l "$REL/api/index.php" >/dev/null || die "Error de sintaxis PHP en el servidor"
-CFG="$(po_config_path "$REL/api/index.php")"
+CFG="$(po_config_path "$PO_TARGET" "$REL/api/index.php")"
 [ -n "$CFG" ] && [ -f "$CFG" ] || die "La nueva API apunta a una configuración inexistente: $CFG"
 case "$CFG" in "$HOME"/domains/*) die "La configuración no debe estar dentro de domains";; esac
 DBNAME="$(po_db_name "$CFG")"
 [ "$DBNAME" = "$EXPECTED_DB" ] || die "La configuración apunta a '$DBNAME', se esperaba '$EXPECTED_DB'"
+case "$PO_TARGET" in
+  *procesos-pruebas*) [ "$DBNAME" != "u378754586_processone" ] || die "Pruebas NUNCA puede usar la base de producción" ;;
+  *) case "$DBNAME" in *pruebas*) die "Producción no puede usar una base de pruebas";; esac ;;
+esac
 log "2/6 Paquete validado en servidor (PHP $(php -r 'echo PHP_VERSION;'), config fuera de public_html, base $DBNAME)."
 
 STAMP="$(date -u +%Y%m%dT%H%M%SZ)"
@@ -54,7 +58,7 @@ log "4/6 Respaldo de base de datos (solo lectura): $(basename "$DB_BK") ($(du -h
 copy() { if command -v rsync >/dev/null 2>&1; then rsync -a "$@"; else cp -a "$@"; fi; }
 mkdir -p "$PO_TARGET/assets" "$PO_TARGET/api"
 [ -d "$REL/assets" ] && copy "$REL/assets/." "$PO_TARGET/assets/"
-for f in "$REL"/*.svg "$REL"/manus-routes.json; do [ -f "$f" ] && copy "$f" "$PO_TARGET/"; done
+for f in "$REL"/*.svg "$REL"/manus-routes.json "$REL"/robots.txt; do if [ -f "$f" ]; then copy "$f" "$PO_TARGET/"; fi; done
 copy "$REL/api/index.php" "$PO_TARGET/api/index.php"
 copy "$REL/.htaccess" "$PO_TARGET/.htaccess"
 copy "$REL/version.json" "$PO_TARGET/version.json"

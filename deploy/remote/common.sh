@@ -42,9 +42,16 @@ po_guard_target() {
   PO_TARGET="$real"
 }
 
-# Ruta de config.php que usa el api/index.php indicado (no lee el archivo de configuración).
+# Ruta de config.php que corresponde a un destino (pruebas o producción) y que la API debe contener.
+# $1 = carpeta destino (real) · $2 = api/index.php a verificar. No lee el archivo de configuración.
 po_config_path() {
-  grep -oE "/home/[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+/config\.php" "$1" | head -n1
+  local cfg
+  case "$1" in
+    */procesos-pruebas|*/procesos-pruebas.viajescasal.com/public_html) cfg="$HOME/processone-pruebas-private/config.php" ;;
+    *) cfg="$HOME/processone-private/config.php" ;;
+  esac
+  grep -qF "$cfg" "$2" 2>/dev/null || return 0
+  printf '%s' "$cfg"
 }
 
 # Nombre de la base configurada (solo el nombre, nunca credenciales).

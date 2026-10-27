@@ -6,9 +6,15 @@ header('Cache-Control: no-store');
 header('X-Content-Type-Options: nosniff');
 header('Referrer-Policy: no-referrer');
 if (empty($_SERVER['HTTPS']) || $_SERVER['HTTPS'] === 'off') { http_response_code(403); echo '{"error":"HTTPS requerido"}'; exit; }
-$config = '/home/u378754586/processone-private/config.php';
+// La configuración se elige por la carpeta física donde está instalada la API (no se puede falsificar desde el navegador).
+// Pruebas: .../public_html/procesos-pruebas/api  ·  Producción: cualquier otra ubicación.
+$isStaging = str_contains(__DIR__, '/procesos-pruebas/');
+$config = $isStaging
+  ? '/home/u378754586/processone-pruebas-private/config.php'
+  : '/home/u378754586/processone-private/config.php';
+if ($isStaging) { header('X-Robots-Tag: noindex, nofollow'); }
 if (!is_file($config)) { http_response_code(503); echo '{"error":"Servidor sin configurar"}'; exit; }
-$settings = require $config;
+ob_start(); $settings = require $config; ob_end_clean();
 if (!is_array($settings)) { http_response_code(503); exit; }
 try {
  $db = new PDO('mysql:host='.($settings['host']??'localhost').';dbname='.$settings['database'].';charset=utf8mb4', $settings['username'], $settings['password'], [

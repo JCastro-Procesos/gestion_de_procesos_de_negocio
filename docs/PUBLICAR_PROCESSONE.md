@@ -50,6 +50,26 @@ Entorno GitHub **processone-production** (Settings › Environments):
 
 Entorno **processone-staging**: mismas variables con su propia ruta, URL y base de datos de pruebas.
 
+## Entorno de pruebas
+| Elemento | Valor |
+|---|---|
+| URL | https://procesos-pruebas.viajescasal.com |
+| Carpeta | `~/domains/viajescasal.com/public_html/procesos-pruebas` |
+| Base de datos | propia, con `pruebas` en el nombre (nunca `u378754586_processone`) |
+| Configuración privada | `~/processone-pruebas-private/config.php` (600) |
+| Entorno GitHub | `processone-staging` (secreto `PROCESSONE_DB_PASSWORD`) |
+
+- **Publicación automática:** cada cambio subido a la rama `develop` se publica en pruebas.
+- **Producción:** solo desde `main`, escribiendo `PUBLICAR` y con aprobación.
+- La API elige la configuración según la carpeta donde está instalada; pruebas no puede conectarse a la base de producción (doble verificación en el script de publicación).
+- Pruebas no se indexa en buscadores (`robots.txt` y `X-Robots-Tag`).
+- **Preparación inicial (una vez):** Actions › *Preparar entorno de pruebas ProcessOne*. Crea la configuración, aplica el esquema sin datos reales y deja la invitación del administrador en `~/processone-pruebas-private/invitacion-administrador.txt` (válida 72 h).
+
+### Flujo de trabajo recomendado
+1. Desarrollar en una rama → Pull Request hacia `develop` → se publica en pruebas.
+2. Probar en https://procesos-pruebas.viajescasal.com con datos ficticios.
+3. Pull Request de `develop` hacia `main` → *Publicar ProcessOne* en producción con aprobación.
+
 ## Limitaciones conocidas
 - El usuario SSH de Hostinger tiene alcance de toda la cuenta. La clave solo está disponible para los flujos aprobados del entorno protegido; los scripts rechazan cualquier ruta que no sea la de ProcessOne.
 - Los archivos antiguos de `assets/` se acumulan (no se borran por seguridad).

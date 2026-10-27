@@ -5,6 +5,7 @@
 set -euo pipefail
 
 RELEASE_ID="${1:?Falta release_id}"
+DESTINO="${2:-produccion}"   # produccion | pruebas
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 
@@ -26,14 +27,24 @@ cat > release/site/.htaccess <<'EOF'
 </IfModule>
 EOF
 
+if [ "$DESTINO" = "pruebas" ]; then
+  # Entorno de pruebas: no indexable por buscadores.
+  cat >> release/site/.htaccess <<'EOF'
+<IfModule mod_headers.c>
+  Header set X-Robots-Tag "noindex, nofollow"
+</IfModule>
+EOF
+  printf 'User-agent: *\nDisallow: /\n' > release/site/robots.txt
+fi
+
 # API PHP: solo index.php. setup.php NUNCA se distribuye.
 mkdir -p release/site/api
 cp server/api/index.php release/site/api/index.php
 
 # Identificador de versión (sin datos sensibles) para verificar la publicación.
 COMMIT="$(git rev-parse HEAD 2>/dev/null || echo desconocido)"
-printf '{"release":"%s","commit":"%s","built_at":"%s"}\n' \
-  "$RELEASE_ID" "$COMMIT" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > release/site/version.json
+printf '{"release":"%s","commit":"%s","environment":"%s","built_at":"%s"}\n' \
+  "$RELEASE_ID" "$COMMIT" "$DESTINO" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > release/site/version.json
 
 bash deploy/check-package.sh release/site
 
