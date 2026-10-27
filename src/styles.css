@@ -111,3 +111,90 @@
 .itm-portfolio-metrics .metric-value{font-size:25px;line-height:1.15;margin:5px 0 3px}
 .itm-portfolio-metrics .metric-note{font-size:10px;line-height:1.35}
 @media(prefers-reduced-motion:reduce){.itm-portfolio-metrics .metric-card{transition:none}.itm-portfolio-metrics .metric-card:hover{transform:none}}
+
+/* ProcessOne: identidad de marca y símbolo de flujo continuo */
+.brand .brand-symbol,.mobile-mark .brand-symbol{display:inline-block!important;flex:0 0 38px;width:38px;height:38px;background:url('/processone.svg') center/contain no-repeat!important;border:0!important;box-shadow:none!important}
+.brand .brand-symbol span,.mobile-mark .brand-symbol span{display:none!important}
+.brand-copy b{font-weight:850;letter-spacing:-.45px;text-transform:none!important}
+.brand-copy em{color:#55d2df;font-style:normal}
+.brand-copy small{letter-spacing:1px;font-size:8px}
+.workspace-avatar{background:linear-gradient(135deg,#09275a,#12b7bb)!important;color:#fff!important}
+
+@keyframes processone-float{0%,100%{transform:translateY(0) rotate(-3deg)}50%{transform:translateY(-6px) rotate(4deg)}}
+@media(prefers-reduced-motion:reduce){[style*='processone-float']{animation:none!important}}
+
+.po-auth{min-height:100vh;display:grid;place-items:center;background:linear-gradient(135deg,#0b2859,#1462ad 65%,#0bb7ac);padding:20px}.po-auth-card{display:grid;gap:16px;width:min(420px,100%);padding:36px;background:white;border-radius:22px;box-shadow:0 25px 70px #041c3855;color:#193967}.po-auth-card h1{font-size:28px;margin:0}.po-auth-card p{font-size:11px;letter-spacing:2px;color:#627897;margin:0}.po-auth-card label{display:grid;gap:7px;font-size:13px;font-weight:700}.po-auth-card input{padding:13px;border:1px solid #cdd9ea;border-radius:10px;font-size:14px}.po-auth-card button{background:#174a92;border:0;color:white;border-radius:10px;padding:14px;font-weight:700;cursor:pointer}.po-auth-card button:disabled{opacity:.6}.po-auth-error{background:#fff0f0;color:#a42a39;padding:10px;border-radius:8px;font-size:12px}.po-auth-card small{font-size:11px;color:#7183a0}.po-session-banner{position:fixed;right:12px;bottom:12px;z-index:1000;display:flex;align-items:center;gap:12px;background:#183c76;color:white;padding:8px 12px;border-radius:12px;box-shadow:0 5px 20px #112b5055;font-size:11px}.po-session-banner button{background:white;color:#173a71;border:0;border-radius:7px;padding:6px 9px;cursor:pointer}
+
+
+/* ProcessOne · Componentes de Fase 2 */
+.po-kpi-tile{background:var(--surface,#f3f7fc);border:1px solid #e0e9f4;border-radius:14px;padding:16px;display:grid;gap:5px}
+.po-kpi-tile small{font-size:12px;color:#657690}.po-kpi-tile strong{font-size:28px;color:#20365f}
+.po-action-row{display:flex;align-items:center;justify-content:space-between;gap:15px;text-align:left;background:#fff;border:1px solid #e1e8f2;border-radius:12px;padding:12px 16px;color:#23365b}
+.po-action-row small{display:block;color:#697993;margin-top:5px}.po-action-row:hover{border-color:#13a4a0;background:#f6fcfc}
+.po-wizard-header{display:flex;align-items:center;justify-content:space-between;gap:10px;background:#edf7f9;border:1px solid #d4ebee;border-radius:12px;padding:13px 16px;margin-bottom:16px;color:#174b65}
+.po-onboarding-overlay{position:fixed;inset:0;z-index:9999;background:rgba(10,23,48,.68);display:grid;place-items:center;padding:20px}
+.po-onboarding-card{width:min(560px,100%);max-height:90vh;overflow:auto;background:white;border-radius:22px;padding:clamp(22px,4vw,40px);box-shadow:0 24px 80px rgba(0,0,0,.3);color:#243b62}
+.po-onboarding-card h2{font-size:30px;margin:12px 0}.po-onboarding-card p{line-height:1.6}.po-onboarding-card li{margin:11px 0}.po-onboarding-card small{display:block;margin-top:20px;color:#687891}
+.po-onboarding-kicker{font-size:11px;font-weight:800;letter-spacing:2px;color:#0b9694}
+@media(max-width:700px){.po-action-row{align-items:flex-start;flex-direction:column}.po-wizard-header{flex-direction:column;align-items:flex-start}}
+
+.po-help-anchor{position:fixed;bottom:24px;right:24px;z-index:80}.po-help-fab{background:#17264e;color:white;border:0;border-radius:25px;padding:12px 18px;display:flex;gap:8px;align-items:center;box-shadow:0 8px 25px #17264e55}.po-help-panel{background:white;color:#253653;border-radius:16px;border:1px solid #dce5f0;padding:15px;width:min(360px,calc(100vw - 40px));max-height:65vh;overflow:auto;box-shadow:0 12px 35px #17264e44;margin-bottom:12px}.po-help-panel header{display:flex;justify-content:space-between;align-items:center}.po-help-panel header button{border:0;background:transparent}.po-help-search{display:flex;gap:7px;padding:9px;border:1px solid #dce5f0;border-radius:8px;margin:12px 0}.po-help-search input{border:0;width:100%}.po-help-body li{margin:8px 0}.po-help-body button,.po-help-results button{padding:9px;border:1px solid #dce5f0;border-radius:8px;background:#f4f7fb;margin:3px}.po-help-results{display:grid}.po-help-panel footer{font-size:10px;color:#7c8ba2;margin-top:15px}.po-empty-state{padding:25px;text-align:center;background:#f7fbff;border:1px dashed #cbd7e7;border-radius:12px}
+
+.po-notifications{position:relative}.po-notifications>button{position:relative;background:#f0f4fc;color:#20385f;border:1px solid #dce5f0;border-radius:10px;padding:10px}.po-notifications>button b{position:absolute;top:-7px;right:-7px;border-radius:12px;background:#d95665;color:white;padding:1px 5px;font-size:9px}.po-notification-panel{position:absolute;right:0;top:45px;width:min(340px,90vw);max-height:440px;overflow:auto;background:white;border:1px solid #dce5f0;border-radius:12px;padding:16px;box-shadow:0 15px 40px #17264e35;z-index:100}.po-notification-panel p{border-bottom:1px solid #eef2f8;padding:7px 0;font-size:11px}.po-notification-panel button{background:#17264e;color:white;border:0;border-radius:8px;padding:9px}.top-add-button,.nav-link,.po-help-fab,.po-action-row{transition:background-color .18s ease,transform .18s ease,box-shadow .18s ease}.top-add-button:active,.po-help-fab:active,.po-action-row:active{transform:scale(.98)}@media(prefers-reduced-motion:reduce){.top-add-button,.nav-link,.po-help-fab,.po-action-row{transition:none!important}}
+
+/* Fase 3 · Buscador, metas, perfil, dependencias y accesibilidad */
+.po-goal-form{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;align-items:end;margin:15px 0}
+.po-goal-form label,.po-profile-form label{display:grid;gap:6px;font-weight:650}
+.po-goal-form input,.po-goal-form select,.po-profile-form input{width:100%;min-height:42px;border:1px solid #cbd5e4;border-radius:9px;padding:8px;background:white;color:#1b3157}
+.po-table-scroll{overflow-x:auto;max-width:100%}.po-goal-ok{color:#08785d}.po-goal-pending{color:#8c580a}
+.po-dependency-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:8px;max-height:180px;overflow:auto;padding:10px;background:#f5f8fc;border-radius:10px}
+.po-dependency-list label{display:flex;align-items:center;gap:8px;min-height:34px}
+.po-profile-form{display:grid;gap:14px;max-width:560px}.po-profile-preview{display:grid;place-items:center;width:86px;height:86px;border-radius:50%;background:#eaf1fc;color:#21366d;font-size:44px}
+.po-profile-form fieldset{border:1px solid #d7e0ed;border-radius:12px}.po-avatar-grid{display:flex;flex-wrap:wrap;gap:8px}.po-avatar-grid button{font-size:25px;background:#f2f6fc;border:2px solid transparent;border-radius:12px;padding:8px}.po-avatar-grid button.selected{border-color:#197d9a;background:#e2f7f8}
+.po-search-trigger{display:flex;align-items:center;gap:8px;border:1px solid #d7e0ed;border-radius:9px;background:#fff;color:#253653;padding:9px 12px}.po-search-trigger kbd{font-size:10px;color:#61718c}
+.po-search-overlay{position:fixed;inset:0;background:rgba(12,24,48,.64);z-index:120;display:flex;align-items:flex-start;justify-content:center;padding:12vh 16px 16px}
+.po-search-dialog{width:min(640px,100%);background:white;border-radius:16px;box-shadow:0 18px 70px #0005;padding:16px;max-height:75vh;overflow:auto;color:#203454}
+.po-search-dialog header{display:flex;align-items:center;gap:10px;border-bottom:1px solid #e5ebf4;padding-bottom:12px}.po-search-dialog header input{border:0;outline:0;flex:1;min-width:0;padding:8px}.po-search-dialog header button{border:0;background:transparent}.po-search-dialog>label{display:flex;align-items:center;gap:10px;margin:12px 0}.po-search-dialog select{border:1px solid #cbd5e4;border-radius:8px;padding:8px}
+.po-search-results{display:grid;gap:5px}.po-search-results button{display:grid;gap:4px;text-align:left;border:0;border-radius:9px;padding:12px;background:#f5f8fc;color:#253653}.po-search-results button:hover{background:#eaf1fc}.po-search-results small{color:#60708d}
+:root{scroll-behavior:smooth}button,input,select,textarea,a{touch-action:manipulation}button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:3px solid #167fba;outline-offset:3px}
+@media(max-width:680px){body{min-width:320px}.po-search-trigger kbd{display:none}.po-search-dialog{max-height:86vh}.po-search-overlay{padding-top:6vh}.po-goal-form{grid-template-columns:1fr}.po-help-anchor{right:10px;bottom:10px}.po-notification-panel{right:-40px}.po-table-scroll{overscroll-behavior-x:contain}}
+@media(prefers-reduced-motion:reduce){:root{scroll-behavior:auto}*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+
+/* ProcessOne · consistencia visual 2026 — sin cambios de lógica */
+:root{--po-kpi-blue:#5d70d9;--po-kpi-gray:#98a2b3;--po-kpi-amber:#e3a022;--po-kpi-teal:#35a58b;--po-kpi-navy:#267765;--po-kpi-purple:#7955ce}
+body{font-size:13px;line-height:1.55;-webkit-font-smoothing:antialiased}
+.page-stack{min-width:0}
+.page-stack .section-heading h1,.page-stack .section-heading h2{letter-spacing:-.025em}
+input,select,textarea{font-size:max(13px,1em)}
+.metric-label{font-size:11px;line-height:1.3;font-weight:700;letter-spacing:.025em}
+.metric-value{font-size:clamp(24px,2.15vw,32px);line-height:1.12;letter-spacing:-.045em}
+.metric-note{font-size:11px;line-height:1.45}
+.itm-portfolio-metrics{gap:12px;align-items:stretch}
+.itm-portfolio-metrics .metric-card{min-height:126px;padding:17px 17px 15px;border:1px solid #e4eaf3;border-top:3px solid var(--po-kpi-blue);border-radius:13px;background:#fff;box-shadow:0 4px 14px rgba(22,38,78,.035)}
+.itm-portfolio-metrics .metric-card::before{display:none}
+.itm-portfolio-metrics .metric-card.metric-indigo{border-top-color:var(--po-kpi-blue)}
+.itm-portfolio-metrics .metric-card.metric-blue{border-top-color:var(--po-kpi-gray)}
+.itm-portfolio-metrics .metric-card.metric-green{border-top-color:var(--po-kpi-teal)}
+.itm-portfolio-metrics .metric-card.metric-amber{border-top-color:var(--po-kpi-amber)}
+.itm-portfolio-metrics .metric-card.metric-red{border-top-color:#dc6472}
+.itm-portfolio-metrics .itm-portfolio-total{background:#fff;color:var(--navy);border-color:#e4eaf3;border-top-color:var(--po-kpi-blue)}
+.itm-portfolio-metrics .itm-portfolio-total .metric-label,.itm-portfolio-metrics .itm-portfolio-total .metric-note{color:#78869c}
+.itm-portfolio-metrics .itm-portfolio-total .metric-value{color:var(--navy)}
+.itm-portfolio-metrics .metric-top{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.itm-portfolio-metrics .metric-label{text-transform:uppercase;font-size:10px;font-weight:800;letter-spacing:.055em;color:#71819a}
+.itm-portfolio-metrics .metric-value{margin:8px 0 3px;font-size:clamp(26px,2.15vw,32px);font-weight:800;color:#182d55}
+.itm-portfolio-metrics .metric-note{font-size:10px;color:#8b98ae;line-height:1.45}
+.itm-portfolio-metrics .itm-metric-symbol{flex:none;color:var(--po-kpi-blue);opacity:.85;stroke-width:1.9}
+.itm-portfolio-metrics .metric-blue .itm-metric-symbol{color:var(--po-kpi-gray)}
+.itm-portfolio-metrics .metric-green .itm-metric-symbol{color:var(--po-kpi-teal)}
+.itm-portfolio-metrics .metric-amber .itm-metric-symbol{color:var(--po-kpi-amber)}
+.itm-portfolio-metrics .metric-red .itm-metric-symbol{color:#dc6472}
+.itm-portfolio-metrics .metric-card:hover{transform:translateY(-2px);box-shadow:0 8px 22px rgba(29,49,92,.08)}
+.itm-portfolio-metrics .metric-card:focus-within{outline:2px solid #6176d8;outline-offset:2px}
+button svg,.nav-link svg,.metric-icon svg{flex-shrink:0;stroke-width:1.9}
+button{min-height:32px}
+button:focus-visible,a:focus-visible,[role="button"]:focus-visible{outline:3px solid #3b7fc7;outline-offset:3px}
+@media(max-width:1100px){.itm-portfolio-metrics{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:760px){.itm-portfolio-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.itm-portfolio-metrics .metric-card{min-height:116px;padding:14px}.itm-portfolio-metrics .metric-value{font-size:27px}}
+@media(max-width:410px){.itm-portfolio-metrics{grid-template-columns:1fr}.itm-portfolio-metrics .metric-card{min-height:100px}}
+@media(prefers-reduced-motion:reduce){.itm-portfolio-metrics .metric-card{transition:none}}

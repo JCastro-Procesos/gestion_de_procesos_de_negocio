@@ -169,12 +169,12 @@ export function importJson(value: unknown, current: Workspace, mode: 'merge' | '
   if (Array.isArray(raw.timeLogs)) base.timeLogs = upsert(base.timeLogs, raw.timeLogs.filter((item) => item && typeof item === 'object' && 'id' in item) as Workspace['timeLogs']);
 
   if (raw.plans && typeof raw.plans === 'object') {
-    const groupedIndexes = [[0], [1], [2, 3], [4, 5], [6, 7, 8, 9, 10]];
+    const groupedIndexes = [[0], [1], [2, 3], [4, 5], [6, 7, 8, 9], [10]];
     Object.entries(raw.plans as Record<string, unknown>).forEach(([projectId, value]) => {
       if (!Array.isArray(value) || base.stages.some((stage) => stage.projectId === projectId)) return;
       const rows = value as Record<string, unknown>[];
       DEFAULT_STAGE_BLUEPRINT.forEach((blueprint, stageIndex) => {
-        const grouped = groupedIndexes[stageIndex].map((index) => rows[index]).filter(Boolean);
+        const grouped = (groupedIndexes[stageIndex] ?? []).map((index) => rows[index]).filter(Boolean);
         const activities = grouped.map((plan, index) => {
           const activityName = str(plan.activity ?? plan.name ?? plan.task) || `Actividad migrada ${index + 1}`;
           return { id: newId('activity'), name: activityName, deliverable: str(plan.deliverable ?? plan.output ?? plan.activity), ownerId: ownerIdFor(plan.owner ?? plan.responsible), startDate: str(plan.start ?? plan.startDate), dueDate: str(plan.end ?? plan.dueDate), status: legacyStatus(plan.status, 'stage') as Stage['status'], progress: Math.min(100, Math.max(0, Number(plan.progress) || 0)) };

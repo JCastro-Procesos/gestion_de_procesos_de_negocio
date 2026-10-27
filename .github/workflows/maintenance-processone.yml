@@ -1,0 +1,47 @@
+name: Mantenimiento ProcessOne · retirar copia duplicada (con aprobación)
+
+# Tarea única: mueve public_html/public_html/procesos a ~/processone-backups.
+# No borra archivos. Requiere aprobación del entorno processone-production.
+on:
+  push:
+    branches: [feature/processone-cicd-ssh]
+    paths:
+      - 'deploy/remote/quarantine-duplicate.sh'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: processone-deploy-produccion
+  cancel-in-progress: false
+
+jobs:
+  retirar-duplicado:
+    runs-on: ubuntu-latest
+    environment: processone-production
+    steps:
+      - uses: actions/checkout@v4
+      - name: Preparar conexión SSH verificada
+        env:
+          SSH_KEY: ${{ secrets.HOSTINGER_SSH_KEY }}
+          HOST: ${{ vars.HOSTINGER_HOST }}
+          PORT: ${{ vars.HOSTINGER_PORT }}
+          USER_SSH: ${{ vars.HOSTINGER_USER }}
+          FP: ${{ vars.HOSTINGER_HOST_FINGERPRINT }}
+        run: bash deploy/ssh-setup.sh
+      - name: Mover copia duplicada a respaldos (sin borrar)
+        env:
+          DEPLOY_PATH: ${{ vars.HOSTINGER_DEPLOY_PATH }}
+        run: |
+          cat deploy/remote/common.sh deploy/remote/quarantine-duplicate.sh | ssh hostinger bash -s -- "$DEPLOY_PATH"
+      - name: Verificar que producción sigue funcionando
+        run: bash deploy/smoke-test.sh "${{ vars.PROCESSONE_SITE_URL }}"
+      - name: Verificar que la copia ya no es pública
+        run: |
+          body="$(curl -sS -m 20 "https://viajescasal.com/public_html/procesos/?nc=$(date +%s)" || true)"
+          if echo "$body" | grep -q 'ProcessOne'; then echo "::error::La copia sigue respondiendo"; exit 1; fi
+          echo "✅ https://viajescasal.com/public_html/procesos/ ya no muestra ProcessOne"
+      - name: Limpiar clave
+        if: always()
+        run: rm -rf ~/.ssh

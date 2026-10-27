@@ -1,0 +1,47 @@
+name: Diagnosticar servidor ProcessOne (solo lectura)
+
+# Verifica la conexión SSH y la estructura real del servidor sin modificar nada.
+on:
+  # Disparador temporal mientras estos workflows no estén en main
+  # (GitHub solo permite "Run workflow" con archivos de la rama principal).
+  push:
+    branches: [feature/processone-cicd-ssh]
+    paths:
+      - '.github/workflows/diagnose-processone-ssh.yml'
+      - 'deploy/remote/diagnose.sh'
+  workflow_dispatch:
+    inputs:
+      destino:
+        description: 'Entorno a diagnosticar'
+        type: choice
+        options: [produccion, pruebas]
+        default: produccion
+
+permissions:
+  contents: read
+
+jobs:
+  diagnostico:
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.destino == 'pruebas' && 'processone-staging' || 'processone-production' }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Preparar conexión SSH verificada
+        env:
+          SSH_KEY: ${{ secrets.HOSTINGER_SSH_KEY }}
+          HOST: ${{ vars.HOSTINGER_HOST }}
+          PORT: ${{ vars.HOSTINGER_PORT }}
+          USER_SSH: ${{ vars.HOSTINGER_USER }}
+          FP: ${{ vars.HOSTINGER_HOST_FINGERPRINT }}
+        run: bash deploy/ssh-setup.sh
+      - name: Diagnóstico del servidor (sin cambios)
+        env:
+          DEPLOY_PATH: ${{ vars.HOSTINGER_DEPLOY_PATH }}
+        run: |
+          cat deploy/remote/common.sh deploy/remote/diagnose.sh | ssh hostinger bash -s -- "${DEPLOY_PATH:-}"
+      - name: Verificación pública del sitio
+        if: vars.PROCESSONE_SITE_URL != ''
+        run: bash deploy/smoke-test.sh "${{ vars.PROCESSONE_SITE_URL }}" || true
+      - name: Limpiar clave
+        if: always()
+        run: rm -rf ~/.ssh

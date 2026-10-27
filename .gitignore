@@ -1,0 +1,10 @@
+node_modules/
+dist/
+dist-hostinger/
+release/
+*.tsbuildinfo
+.env
+.env.*
+config.php
+*.pem
+*.key

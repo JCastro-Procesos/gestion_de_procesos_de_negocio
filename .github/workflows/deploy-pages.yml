@@ -1,8 +1,7 @@
 name: Deploy ITM Project Hub to GitHub Pages
 
+# Publicación automática en GitHub Pages desactivada: solo manual.
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
 
 permissions:

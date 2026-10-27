@@ -1,4 +1,4 @@
-import type { Methodology, Stage, TeamMember } from './model';
+import type { Methodology, Stage, TeamMember, Workspace, Project } from './model';
 
 export const METHODOLOGIES: Methodology[] = [
   {
@@ -48,50 +48,65 @@ export const METHODOLOGIES: Methodology[] = [
   },
 ];
 
-export const DEFAULT_STAGE_BLUEPRINT = [
-  { name: 'Inicio y alcance', objective: 'Acordar necesidad, objetivos, alcance, patrocinio y criterios de aceptación.', deliverable: 'Acta de inicio y alcance aprobado.' },
-  { name: 'Diagnóstico y análisis', objective: 'Documentar la situación actual, datos, brechas, causas, riesgos y oportunidades.', deliverable: 'Diagnóstico AS-IS y análisis de brechas.' },
-  { name: 'Diseño y recomendaciones', objective: 'Diseñar la solución futura y priorizar acciones, controles y beneficios.', deliverable: 'Diseño TO-BE y recomendaciones priorizadas.' },
-  { name: 'Validación e implementación', objective: 'Validar con el cliente, ejecutar el plan de implementación y comprobar resultados.', deliverable: 'Plan de implementación validado y evidencia de pruebas.' },
-  { name: 'Cierre y transferencia', objective: 'Obtener aceptación formal, transferir pendientes y acordar medición de beneficios.', deliverable: 'Acta de aceptación, transferencia y próximos pasos.' },
+export const CORPORATE_STAGE_BLUEPRINT = [
+ {name:'Inicio y alcance',objective:'Registrar necesidad, objetivos, alcance, responsables y autorización inicial.',gate:'Alcance, cronograma y criterios de éxito aprobados por patrocinador.',deliverables:['Solicitud y ficha de proyecto','Alcance, objetivos y criterios de éxito','Interesados y responsables','Plan y cronograma base','Acta de inicio aprobada']},
+ {name:'Diagnóstico AS-IS',objective:'Levantar operación actual, riesgos, hallazgos y línea base.',gate:'AS-IS y hallazgos validados por el dueño del proceso.',deliverables:['Plan y evidencias de levantamiento','Mapa y flujos AS-IS','Matriz de roles, sistemas y controles','Hallazgos, riesgos y oportunidades','Línea base y validación']},
+ {name:'Diseño TO-BE',objective:'Diseñar solución futura, controles, KPIs y plan de implementación.',gate:'Diseño completo y listo para evaluación formal.',deliverables:['Evaluación de alternativas','Diseño de solución TO-BE','RACI, reglas y controles','Documentación técnica y operativa','KPIs y criterios de aceptación','Plan de implementación']},
+ {name:'Validación y aprobación',objective:'Revisar factibilidad, pruebas, observaciones y autorización.',gate:'Sin observaciones críticas; solución autorizada para implementar.',deliverables:['Revisión con usuarios','Observaciones resueltas','Pruebas preliminares','Versión final controlada','Aprobación para implementación']},
+ {name:'Implementación y estabilización',objective:'Desplegar, capacitar, probar, corregir y estabilizar.',gate:'Solución operativa, pruebas aceptadas y sin incidentes críticos bloqueantes.',deliverables:['Plan de despliegue','Capacitación y comunicación','Solución implementada','Pruebas operativas y aceptación','Incidencias y estabilización']},
+ {name:'Cierre y resultados',objective:'Medir beneficios, transferir documentación y cerrar formalmente.',gate:'Resultados verificados o desviaciones aceptadas formalmente; transferencia y cierre autorizados.',deliverables:['Informe de resultados y KPIs','Acta de transferencia','Repositorio actualizado','Lecciones y pendientes','Acta de cierre']}
 ] as const;
-
-export function createStages(projectId: string, startDate: string, dueDate: string, members: TeamMember[], mode: 'Express' | 'Estándar' | 'Transformación' = 'Estándar'): Stage[] {
-  const start = new Date(`${startDate || new Date().toISOString().slice(0, 10)}T12:00:00`);
-  const end = new Date(`${dueDate || startDate || new Date().toISOString().slice(0, 10)}T12:00:00`);
-  const duration = Math.max(7, Math.ceil((end.getTime() - start.getTime()) / 86_400_000));
-  const fractions = mode === 'Express'
-    ? [[0, .12], [.13, .48], [.49, .76], [.77, .92], [.93, 1]]
-    : mode === 'Transformación'
-      ? [[0, .06], [.07, .23], [.24, .43], [.44, .86], [.87, 1]]
-      : [[0, .1], [.11, .32], [.33, .53], [.54, .85], [.86, 1]];
-  const dateAt = (fraction: number) => {
-    const date = new Date(start);
-    date.setDate(date.getDate() + Math.round((duration - 1) * fraction));
-    return date.toISOString().slice(0, 10);
-  };
-  const defaultOwner = members[0]?.id ?? '';
-  return DEFAULT_STAGE_BLUEPRINT.map((blueprint, index): Stage => ({
-    id: `stage-${crypto.randomUUID()}`,
-    projectId,
-    order: index + 1,
-    name: blueprint.name,
-    objective: blueprint.objective,
-    startDate: dateAt(fractions[index][0]),
-    dueDate: dateAt(fractions[index][1]),
-    status: 'Por iniciar',
-    progress: 0,
-    activities: [{
-      id: `activity-${crypto.randomUUID()}`,
-      name: `Completar: ${blueprint.name}`,
-      deliverable: blueprint.deliverable,
-      ownerId: defaultOwner,
-      startDate: dateAt(fractions[index][0]),
-      dueDate: dateAt(fractions[index][1]),
-      status: 'Por iniciar',
-      progress: 0,
-    }],
-  }));
+export const DEFAULT_STAGE_BLUEPRINT = CORPORATE_STAGE_BLUEPRINT.map(stage=>({name:stage.name,objective:stage.objective,deliverable:stage.deliverables[0]}));
+export const PROJECT_TYPE_WEIGHTS: Record<'Tecnológico'|'Documentación'|'Optimización',number[]> = {
+ 'Tecnológico':[10,15,20,15,30,10],
+ 'Documentación':[10,30,30,15,10,5],
+ 'Optimización':[10,25,25,10,20,10]
+};
+export const PROJECT_DELIVERABLE_ALIASES: Record<string,Record<string,string>> = {
+ 'Tecnológico':{'Diseño de solución TO-BE':'Diseño funcional, datos e integraciones','Documentación técnica y operativa':'Requerimientos y especificaciones','Pruebas preliminares':'Prototipos y pruebas funcionales','Solución implementada':'Configuración, migración y puesta en producción','Pruebas operativas y aceptación':'Pruebas UAT y aceptación de usuarios'},
+ 'Documentación':{'Diseño de solución TO-BE':'Procedimientos y flujos TO-BE','Documentación técnica y operativa':'Manuales, instructivos y formatos','Solución implementada':'Documentos publicados y en uso'},
+ 'Optimización':{'Diseño de solución TO-BE':'Rediseño optimizado y controles','Pruebas preliminares':'Piloto de mejoras','Informe de resultados y KPIs':'Beneficios medidos frente a línea base'}
+};
+export function createStages(projectId:string,startDate:string,dueDate:string,members:TeamMember[],_mode:'Express'|'Estándar'|'Transformación'='Estándar',planType:'Tecnológico'|'Documentación'|'Optimización'='Optimización'):Stage[]{
+ const start=new Date((startDate||new Date().toISOString().slice(0,10))+'T12:00:00');
+ const end=new Date((dueDate||startDate||new Date().toISOString().slice(0,10))+'T12:00:00');
+ const days=Math.max(6,Math.round((end.getTime()-start.getTime())/86400000));
+ const weights=PROJECT_TYPE_WEIGHTS[planType],total=weights.reduce((a,b)=>a+b,0);let cumulative=0;
+ const at=(fraction:number)=>{const d=new Date(start);d.setDate(d.getDate()+Math.round(days*fraction));return d.toISOString().slice(0,10)};
+ return CORPORATE_STAGE_BLUEPRINT.map((stage,index):Stage=>{
+  const from=cumulative/total;cumulative+=weights[index];const to=cumulative/total;
+  const a=at(from),b=at(to);
+  return {id:'stage-'+crypto.randomUUID(),projectId,order:index+1,name:stage.name,objective:stage.objective+' Puerta: '+stage.gate,startDate:a,dueDate:b,status:'Por iniciar',progress:0,activities:stage.deliverables.map(name=>({id:'activity-'+crypto.randomUUID(),name,deliverable:PROJECT_DELIVERABLE_ALIASES[planType][name]||name,ownerId:members[0]?.id||'',startDate:a,dueDate:b,status:'Por iniciar',progress:0}))};
+ });
+}
+export function weightedProjectProgress(stages:Stage[],type:'Tecnológico'|'Documentación'|'Optimización'='Optimización'):number{
+ const ordered=[...stages].sort((a,b)=>a.order-b.order);
+ const weights=ordered.length===6?PROJECT_TYPE_WEIGHTS[type]:ordered.map(()=>100/Math.max(1,ordered.length));
+ const total=weights.reduce((a,b)=>a+b,0);
+ return total?Math.round(ordered.reduce((sum,stage,i)=>sum+weights[i]*(stage.activities.length?stage.activities.reduce((n,a)=>n+(a.status==='Completada'?1:a.status==='En revisión' ? 0.5 : 0),0)/stage.activities.length:stage.status==='Completada'?1:0),0)/total*100):0;
 }
 
 export const methodFor = (id: number) => METHODOLOGIES.find((method) => method.id === id) ?? METHODOLOGIES[1];
+
+/** Migración conservadora: mantiene IDs de etapas antiguas para no romper tareas, conserva
+ * actividades y evidencias; añade entregables sugeridos sin duplicarlos. */
+export function migrateExistingProject(workspace:Workspace,projectId:string):Workspace{
+ const project=workspace.projects.find(p=>p.id===projectId);
+ if(!project)return workspace;
+ const existing=workspace.stages.filter(s=>s.projectId===projectId).sort((a,b)=>a.order-b.order);
+ if(existing.length===6&&existing.every((s,i)=>s.name===CORPORATE_STAGE_BLUEPRINT[i].name))return workspace;
+ const planType=project.planType||'Optimización';
+ const generated=createStages(projectId,project.startDate,project.dueDate,workspace.members,'Estándar',planType);
+ const used=new Set<string>();
+ const migrated=generated.map((fresh,index)=>{
+  const old=existing[index];
+  if(!old)return {...fresh,activities:fresh.activities.map(a=>({...a,ownerId:project.ownerId||a.ownerId}))};
+  used.add(old.id);
+  const names=new Set(old.activities.map(a=>a.deliverable.trim().toLowerCase()));
+  const additions=fresh.activities.filter(a=>!names.has(a.deliverable.trim().toLowerCase())).map(a=>({...a,ownerId:project.ownerId||a.ownerId}));
+  return {...fresh,id:old.id,startDate:old.startDate||fresh.startDate,dueDate:old.dueDate||fresh.dueDate,status:old.status,progress:old.progress,activities:[...old.activities,...additions]};
+ });
+ // Etapas históricas adicionales se conservan para evitar pérdida de evidencia.
+ const historical=existing.filter(s=>!used.has(s.id)).map((s,i)=>({...s,order:7+i}));
+ return {...workspace,projects:workspace.projects.map((p):Project=>p.id===projectId?{...p,planType}:p),stages:[...workspace.stages.filter(s=>s.projectId!==projectId),...migrated,...historical]};
+}

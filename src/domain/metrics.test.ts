@@ -45,12 +45,13 @@ describe('intercambio de datos', () => {
     const result = importCsv('ID,Proyecto ID,Tipo,Severidad,Descripción,Estado\nr-1,p,Riesgo,Crítica,Acceso bloqueado,En tratamiento', baseWorkspace());
     expect(result.workspace.raids[0]).toMatchObject({ id: 'r-1', projectId: 'p', type: 'Riesgo', severity: 'Crítica', status: 'En tratamiento' });
   });
-  it('migra un plan heredado de siete pasos a cinco etapas manteniendo actividades', () => {
+  it('migra un plan heredado de siete pasos a seis etapas manteniendo actividades', () => {
     const raw = { projects: [{ id: 'legacy', name: 'Proyecto kit', area: 'UDN', owner: 'Paula Líder', methodology: 'Portafolio de Iniciativas y Transformación' }], plans: { legacy: Array.from({ length: 7 }, (_, index) => ({ stage: `Paso ${index + 1}`, activity: `Actividad ${index + 1}`, owner: 'Paula Líder', start: '2026-01-01', end: '2026-01-07', status: index < 2 ? 'Completado' : 'En proceso', progress: index < 2 ? 100 : 25 })) } };
     const result = importJson(raw, DEMO_WORKSPACE, 'replace');
     expect(result.workspace.projects[0].methodologyId).toBe(3);
-    expect(result.workspace.stages.filter((item) => item.projectId === 'legacy')).toHaveLength(5);
+    expect(result.workspace.stages.filter((item) => item.projectId === 'legacy')).toHaveLength(6);
     expect(result.workspace.stages.find((item) => item.projectId === 'legacy' && item.order === 3)?.activities).toHaveLength(2);
+    expect(result.workspace.stages.filter((item) => item.projectId === 'legacy').flatMap((item) => item.activities)).toHaveLength(7);
     expect(result.workspace.members.some((member) => member.name === 'Paula Líder')).toBe(true);
   });
   it('excluye los datos de conexión de Graph del JSON exportable', () => {

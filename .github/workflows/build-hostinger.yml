@@ -37,11 +37,18 @@ jobs:
             RewriteRule . /index.html [L]
           </IfModule>
           EOF
+      - name: Incorporar API PHP al paquete
+        run: |
+          mkdir -p dist-hostinger/api
+          cp server/api/index.php dist-hostinger/api/
+          test -s dist-hostinger/api/index.php
+          php -l dist-hostinger/api/index.php
+          # setup.php es solo para el aprovisionamiento inicial y nunca se distribuye.
       - name: Crear ZIP listo para public_html
-        run: cd dist-hostinger && zip -r ../itm-project-hub-hostinger.zip .
+        run: cd dist-hostinger && zip -r ../processone-hostinger.zip .
       - name: Descargar paquete de publicación
         uses: actions/upload-artifact@v4
         with:
-          name: itm-project-hub-hostinger
-          path: itm-project-hub-hostinger.zip
+          name: processone-hostinger
+          path: processone-hostinger.zip
           retention-days: 30

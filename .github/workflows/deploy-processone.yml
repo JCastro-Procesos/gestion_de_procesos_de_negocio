@@ -1,0 +1,130 @@
+name: Publicar ProcessOne (con aprobación)
+
+# Publicación manual y controlada. Nunca se ejecuta sola.
+# La etapa "publicar" espera la aprobación configurada en el entorno de GitHub.
+on:
+  workflow_dispatch:
+    inputs:
+      destino:
+        description: 'Entorno de destino'
+        type: choice
+        options: [pruebas, produccion]
+        default: pruebas
+      confirmacion:
+        description: 'Para producción escribe PUBLICAR'
+        type: string
+        default: ''
+
+permissions:
+  contents: read
+
+concurrency:
+  group: processone-deploy-${{ inputs.destino }}
+  cancel-in-progress: false
+
+jobs:
+  validar:
+    uses: ./.github/workflows/validate-processone.yml
+
+  empaquetar:
+    needs: validar
+    runs-on: ubuntu-latest
+    outputs:
+      release_id: ${{ steps.id.outputs.release_id }}
+    steps:
+      - name: Confirmación de producción
+        if: inputs.destino == 'produccion'
+        env:
+          CONFIRMACION: ${{ inputs.confirmacion }}
+        run: |
+          test "$CONFIRMACION" = "PUBLICAR" || { echo "::error::Para producción escribe PUBLICAR en confirmación"; exit 1; }
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.25.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Compilar para producción
+        run: pnpm exec tsc -b && pnpm exec vite build --config vite.hostinger.config.ts
+      - id: id
+        run: echo "release_id=r${GITHUB_RUN_NUMBER}-${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+      - name: Armar y verificar paquete
+        run: bash deploy/build-package.sh "${{ steps.id.outputs.release_id }}"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: paquete-${{ steps.id.outputs.release_id }}
+          path: |
+            release/*.tar.gz
+            release/*.sha256
+          retention-days: 30
+
+  publicar:
+    needs: empaquetar
+    runs-on: ubuntu-latest
+    environment:
+      name: ${{ inputs.destino == 'produccion' && 'processone-production' || 'processone-staging' }}
+      url: ${{ vars.PROCESSONE_SITE_URL }}
+    env:
+      RELEASE_ID: ${{ needs.empaquetar.outputs.release_id }}
+      DEPLOY_PATH: ${{ vars.HOSTINGER_DEPLOY_PATH }}
+      EXPECTED_DB: ${{ vars.PROCESSONE_DB_NAME }}
+      SITE_URL: ${{ vars.PROCESSONE_SITE_URL }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: paquete-${{ needs.empaquetar.outputs.release_id }}
+          path: release
+      - name: Preparar conexión SSH verificada
+        env:
+          SSH_KEY: ${{ secrets.HOSTINGER_SSH_KEY }}
+          HOST: ${{ vars.HOSTINGER_HOST }}
+          PORT: ${{ vars.HOSTINGER_PORT }}
+          USER_SSH: ${{ vars.HOSTINGER_USER }}
+          FP: ${{ vars.HOSTINGER_HOST_FINGERPRINT }}
+        run: bash deploy/ssh-setup.sh
+      - name: Enviar paquete al servidor
+        run: |
+          set -euo pipefail
+          ssh hostinger 'umask 077; mkdir -p ~/processone-deploy/incoming'
+          for f in "release/processone-${RELEASE_ID}.tar.gz" "release/processone-${RELEASE_ID}.tar.gz.sha256"; do
+            ssh hostinger "umask 077; cat > ~/processone-deploy/incoming/$(basename "$f")" < "$f"
+          done
+      - name: Respaldar y publicar
+        id: deploy
+        run: |
+          set -euo pipefail
+          ALLOW_EMPTY=0; [ "${{ inputs.destino }}" = "pruebas" ] && ALLOW_EMPTY=1
+          set +e
+          cat deploy/remote/common.sh deploy/remote/deploy.sh \
+            | ssh hostinger bash -s -- "$DEPLOY_PATH" "$RELEASE_ID" "$EXPECTED_DB" "$ALLOW_EMPTY" | tee deploy.log
+          st=${PIPESTATUS[1]}
+          set -e
+          grep -oE '^BACKUP_FILES=.*' deploy.log | tail -n1 >> "$GITHUB_OUTPUT" || true
+          exit "$st"
+      - name: Verificar sitio y API
+        id: smoke
+        run: bash deploy/smoke-test.sh "$SITE_URL" "$RELEASE_ID"
+      - name: Revertir archivos si la verificación falla
+        if: failure() && steps.deploy.outputs.BACKUP_FILES != ''
+        run: |
+          echo "::warning::Verificación fallida: restaurando ${{ steps.deploy.outputs.BACKUP_FILES }}"
+          cat deploy/remote/common.sh deploy/remote/rollback.sh \
+            | ssh hostinger bash -s -- "$DEPLOY_PATH" "${{ steps.deploy.outputs.BACKUP_FILES }}"
+      - name: Registrar resultado
+        if: always()
+        run: |
+          {
+            echo "## Publicación ProcessOne · ${{ inputs.destino }}"
+            echo "- Versión: \`$RELEASE_ID\` · commit \`${GITHUB_SHA::7}\` · rama \`${GITHUB_REF_NAME}\`"
+            echo "- Aprobada y ejecutada por: ${GITHUB_ACTOR}"
+            echo "- Respaldo para reversión: \`${{ steps.deploy.outputs.BACKUP_FILES || 'no generado' }}\`"
+            echo "- Resultado de verificación: ${{ steps.smoke.outcome }}"
+            echo '- Migraciones de base de datos: **no se ejecutan automáticamente**'
+          } >> "$GITHUB_STEP_SUMMARY"
+      - name: Limpiar clave
+        if: always()
+        run: rm -rf ~/.ssh
