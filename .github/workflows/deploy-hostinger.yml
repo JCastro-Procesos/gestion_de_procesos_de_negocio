@@ -1,78 +1,44 @@
-name: Publicar ITM Project Hub en Hostinger
+name: ProcessOne - validar paquete para Hostinger
 
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
+  pull_request:
+    paths:
+      - 'src/**'
+      - 'server/api/**'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - 'vite.hostinger.config.ts'
+      - '.github/workflows/deploy-hostinger.yml'
 
 permissions:
   contents: read
 
-concurrency:
-  group: hostinger-production
-  cancel-in-progress: false
-
 jobs:
-  deploy:
+  prepare:
     runs-on: ubuntu-latest
-    environment: hostinger-production
     steps:
-      - name: Verificar configuración segura
-        env:
-          FTP_HOST: ${{ secrets.HOSTINGER_FTP_HOST }}
-          FTP_USER: ${{ secrets.HOSTINGER_FTP_USER }}
-          FTP_PASSWORD: ${{ secrets.HOSTINGER_FTP_PASSWORD }}
-          FTP_REMOTE_DIR: ${{ vars.HOSTINGER_REMOTE_DIR }}
-        run: |
-          test -n "$FTP_HOST" || { echo "::error::Falta HOSTINGER_FTP_HOST"; exit 1; }
-          test -n "$FTP_USER" || { echo "::error::Falta HOSTINGER_FTP_USER"; exit 1; }
-          test -n "$FTP_PASSWORD" || { echo "::error::Falta HOSTINGER_FTP_PASSWORD"; exit 1; }
-          test -n "$FTP_REMOTE_DIR" || { echo "::error::Falta HOSTINGER_REMOTE_DIR"; exit 1; }
-          # La cuenta FTP u378754586.itmprocesos está confinada a la raíz
-          # física de procesos.viajescasal.com. La ruta "/" es segura
-          # únicamente para esa cuenta limitada.
-          test "$FTP_USER" = "u378754586.itmprocesos" || {
-            echo "::error::La cuenta FTP no es la cuenta aislada itmprocesos"
-            exit 1
-          }
-          test "$FTP_REMOTE_DIR" = "/" || {
-            echo "::error::El directorio remoto debe ser / para la cuenta aislada"
-            exit 1
-          }
-
-      - name: Validar DNS y certificado FTPS
-        env:
-          FTP_HOST: ${{ secrets.HOSTINGER_FTP_HOST }}
-        run: |
-          set -euo pipefail
-          test "$FTP_HOST" = "ftp.procesos.viajescasal.com" || {
-            echo "::error::Usar el hostname FTPS confirmado por Hostinger"
-            exit 1
-          }
-          getent ahostsv4 "$FTP_HOST" >/dev/null || {
-            echo "::error::El hostname FTPS no resuelve. Solicitar a Hostinger un nombre DNS válido compatible con el certificado."
-            exit 1
-          }
-          echo "DNS FTPS resuelto; lftp verificará el certificado TLS en la conexión."
-
-
-      - name: Obtener código
-        uses: actions/checkout@v4
-      - name: Instalar pnpm
-        uses: pnpm/action-setup@v4
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
         with:
           version: 11.25.0
-      - name: Configurar Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: '22'
           cache: pnpm
-      - name: Instalar dependencias
-        run: pnpm install --frozen-lockfile
-      - name: Validar y compilar
-        run: pnpm exec tsc -b && pnpm exec vite build --config vite.hostinger.config.ts
-      - name: Configurar rutas de la aplicación
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec tsc -b
+      - run: pnpm exec vitest run
+      - run: pnpm exec vite build --config vite.hostinger.config.ts
+      - run: php -l server/api/index.php
+      - name: Preparar paquete sin secretos
+        shell: bash
         run: |
+          set -euo pipefail
+          test -s dist-hostinger/index.html
+          test -s server/api/index.php
+          mkdir -p dist-hostinger/api
+          cp server/api/index.php dist-hostinger/api/index.php
           cat > dist-hostinger/.htaccess <<'EOF'
           <IfModule mod_rewrite.c>
             RewriteEngine On
@@ -83,24 +49,12 @@ jobs:
             RewriteRule . /index.html [L]
           </IfModule>
           EOF
-      - name: Instalar cliente FTPS
-        run: sudo apt-get update -qq && sudo apt-get install -y -qq lftp
-      - name: Publicar solo archivos de la aplicación
-        env:
-          FTP_HOST: ${{ secrets.HOSTINGER_FTP_HOST }}
-          FTP_USER: ${{ secrets.HOSTINGER_FTP_USER }}
-          FTP_PASSWORD: ${{ secrets.HOSTINGER_FTP_PASSWORD }}
-          FTP_REMOTE_DIR: ${{ vars.HOSTINGER_REMOTE_DIR }}
-        run: |
-          set -euo pipefail
-          # Se exige TLS y certificado válido. Nunca eliminar archivos remotos ajenos.
-          lftp -u "$FTP_USER","$FTP_PASSWORD" "$FTP_HOST" <<EOF
-          set ftp:ssl-force true
-          set ftp:ssl-protect-data true
-          set ssl:verify-certificate true
-          set net:max-retries 2
-          set net:timeout 20
-          cd "$FTP_REMOTE_DIR"
-          mirror --reverse --verbose=1 --parallel=2 --no-perms dist-hostinger .
-          bye
-          EOF
+          for forbidden in dist-hostinger/api/setup.php dist-hostinger/config.php dist-hostinger/.env; do
+            test ! -e "$forbidden" || { echo "::error::Archivo prohibido: $forbidden"; exit 1; }
+          done
+          (cd dist-hostinger && zip -r ../processone-hostinger.zip .)
+      - uses: actions/upload-artifact@v4
+        with:
+          name: processone-hostinger-candidato
+          path: processone-hostinger.zip
+          retention-days: 14
