@@ -1,3 +1,4 @@
+import {weightedProjectProgress} from '../../domain/methodologies';
 import { useEffect,useState } from 'react';
 import type { Workspace } from '../../domain/model';
 import { api,session,type CurrentUser } from '../../data/processoneApi';
@@ -10,7 +11,7 @@ export function InitiativesPage({workspace}:{workspace:Workspace}){
  const load=()=>api<{initiatives:Initiative[]}>('initiatives').then(r=>setItems(r.initiatives)).catch(e=>setError(String(e)));
  useEffect(()=>{session().then(setUser).catch(e=>setError(String(e)));void load()},[]);
  const linkedProjects=(i:Initiative)=>i.project_ids?i.project_ids.split(',').map(id=>workspace.projects.find(p=>p.id===id)).filter((p):p is Workspace['projects'][number]=>!!p):[];
- const projectProgress=(id:string)=>{const stages=workspace.stages.filter(s=>s.projectId===id);if(!stages.length)return workspace.projects.find(p=>p.id===id)?.status==='Completado'?100:0;return Math.round(stages.reduce((sum,stage)=>sum+Math.max(0,Math.min(100,stage.progress)),0)/stages.length);};
+ const projectProgress=(id:string)=>{const project=workspace.projects.find(p=>p.id===id);if(!project)return 0;const stages=workspace.stages.filter(s=>s.projectId===id);if(!stages.length)return project.status==='Completado'?100:0;return weightedProjectProgress(stages,project.planType);};
  const initiativeProgress=(i:Initiative)=>{const projects=linkedProjects(i);return projects.length?Math.round(projects.reduce((sum,p)=>sum+projectProgress(p.id),0)/projects.length):0;};
  const reset=()=>{setEditing(null);setTitle('');setObjective('');setStatus('Planeada');setSelected([])};
  const edit=(i:Initiative)=>{setEditing(i.id);setTitle(i.title);setObjective(i.objective);setStatus(i.status);setSelected(i.project_ids?i.project_ids.split(','):[])};
