@@ -21,25 +21,25 @@ esac
 po_allowed_path "$(cd "$STG_DIR" && pwd -P)" || die "Carpeta de pruebas fuera de la lista permitida"
 log "1/5 Protecciones superadas (base $PO_DB_NAME, carpeta procesos-pruebas)."
 
-# 2) Configuración privada de pruebas (fuera de public_html, permisos 600). No se sobrescribe si ya existe.
+# 2) Configuración privada de pruebas (fuera de public_html, permisos 600).
+#    Se regenera siempre desde los secretos de GitHub (fuente de verdad del entorno de pruebas).
 mkdir -p "$STG_PRIV"; chmod 700 "$STG_PRIV"
-if [ -f "$STG_CFG" ]; then
-  [ "$(po_db_name "$STG_CFG")" = "$PO_DB_NAME" ] || die "La configuración de pruebas existente apunta a otra base"
-  log "2/5 Configuración de pruebas ya existía: se conserva."
-else
-  PO_DB_PASSWORD="$PO_DB_PASSWORD" php -r '
-    $c=["host"=>"localhost","database"=>$argv[1],"username"=>$argv[2],"password"=>getenv("PO_DB_PASSWORD"),
-        "rate_secret"=>bin2hex(random_bytes(32)),"public_url"=>$argv[3],"mail_from"=>$argv[4],"environment"=>"pruebas"];
-    echo "<?php\nreturn ".var_export($c,true).";\n";' "$PO_DB_NAME" "$PO_DB_USER" "$PO_SITE_URL" "$PO_MAIL_FROM" > "$STG_CFG"
-  chmod 600 "$STG_CFG"
-  log "2/5 Configuración de pruebas creada en $STG_CFG (permisos 600)."
+if [ -f "$STG_CFG" ] && [ "$(po_db_name "$STG_CFG")" != "$PO_DB_NAME" ]; then
+  die "La configuración de pruebas existente apunta a otra base: revisar manualmente"
 fi
+PO_DB_PASSWORD="$PO_DB_PASSWORD" php -r '
+  $c=["host"=>"localhost","database"=>$argv[1],"username"=>$argv[2],"password"=>getenv("PO_DB_PASSWORD"),
+      "rate_secret"=>bin2hex(random_bytes(32)),"public_url"=>$argv[3],"mail_from"=>$argv[4],"environment"=>"pruebas"];
+  echo "<?php\nreturn ".var_export($c,true).";\n";' "$PO_DB_NAME" "$PO_DB_USER" "$PO_SITE_URL" "$PO_MAIL_FROM" > "$STG_CFG.tmp"
+chmod 600 "$STG_CFG.tmp"; mv -f "$STG_CFG.tmp" "$STG_CFG"
+log "2/5 Configuración de pruebas escrita en $STG_CFG (permisos 600)."
 unset PO_DB_PASSWORD
 
 # 3) Conexión y esquema (solo en la base de pruebas).
 [ -d "$SCHEMA_DIR" ] || die "No se recibieron los archivos de esquema"
-php -r '
+php -d display_errors=stderr -r '
   ob_start(); $c=include $argv[1]; ob_end_clean();
+  set_exception_handler(function($e) use ($c){ fwrite(STDERR,"   detalle: ".get_class($e)." [".$e->getCode()."] ".str_replace((string)($c["password"]??"\0"),"***",$e->getMessage())."\n"); exit(1); });
   if (($c["database"]??"") !== $argv[2]) { fwrite(STDERR,"config no coincide\n"); exit(1); }
   $db=new PDO("mysql:host=".$c["host"].";dbname=".$c["database"].";charset=utf8mb4",$c["username"],$c["password"],[PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION]);
   $real=$db->query("SELECT DATABASE()")->fetchColumn();
