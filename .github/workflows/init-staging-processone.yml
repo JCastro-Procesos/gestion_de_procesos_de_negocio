@@ -17,7 +17,7 @@ jobs:
     runs-on: ubuntu-latest
     environment: processone-staging
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Verificar configuración del entorno
         env:
           DB_NAME: ${{ vars.PROCESSONE_DB_NAME }}
