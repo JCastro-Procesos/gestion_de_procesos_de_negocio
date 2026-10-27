@@ -9,8 +9,7 @@ for t in rsync tar gzip sha256sum mysqldump curl; do
   if command -v "$t" >/dev/null 2>&1; then log "Herramienta $t: disponible"; else log "Herramienta $t: NO disponible"; fi
 done
 
-log "Dominios en la cuenta:"
-ls -1 "$HOME/domains" 2>/dev/null | sed 's/^/   - /' || log "   (no existe ~/domains)"
+log "Dominios en la cuenta: $(ls -1 "$HOME/domains" 2>/dev/null | wc -l) (nombres omitidos: repositorio público)"
 
 log "Directorios candidatos de ProcessOne:"
 find "$HOME/domains" -maxdepth 4 -type d \( -name 'procesos*' -o -path '*procesos*.viajescasal.com/public_html' \) 2>/dev/null | while IFS= read -r d; do
@@ -44,10 +43,9 @@ if [ -f "$cfg" ]; then
     ob_start(); $c=include $argv[1]; ob_end_clean();
     try { $db=new PDO("mysql:host=".($c["host"]??"localhost").";dbname=".$c["database"].";charset=utf8mb4",$c["username"],$c["password"],[PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION]); }
     catch(Throwable $e){ echo "   no se pudo conectar\n"; exit; }
-    foreach($db->query("SHOW TABLES")->fetchAll(PDO::FETCH_COLUMN) as $t){
-      $n=$db->query("SELECT COUNT(*) FROM `".str_replace("`","",$t)."`")->fetchColumn();
-      echo "   - $t: $n filas\n";
-    }
+    $tabs=$db->query("SHOW TABLES")->fetchAll(PDO::FETCH_COLUMN);
+    $esperadas=["po_users","po_workspace","po_projects","po_auth_tokens","po_governance_items","po_governance_events"];
+    echo "   tablas: ".count($tabs)." · esquema Fase 1 completo: ".(count(array_diff($esperadas,$tabs))?"NO":"sí")."\n";
     $cols=$db->query("SHOW COLUMNS FROM po_users")->fetchAll(PDO::FETCH_COLUMN);
     echo "   po_users.invitation_pending: ".(in_array("invitation_pending",$cols)?"existe":"NO existe")."\n";
   ' "$cfg" 2>/dev/null || log "   (no disponible)"
