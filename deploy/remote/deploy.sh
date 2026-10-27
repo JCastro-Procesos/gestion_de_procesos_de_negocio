@@ -55,7 +55,7 @@ gzip -t "$DB_BK" && [ "$(gzip -dc "$DB_BK" | head -c 4096 | grep -c 'Dump\|CREAT
 log "4/6 Respaldo de base de datos (solo lectura): $(basename "$DB_BK") ($(du -h "$DB_BK" | cut -f1))"
 
 # Copia SIN borrar nada del destino. index.html al final para que la versión cambie de golpe.
-copy() { if command -v rsync >/dev/null 2>&1; then rsync -a "$@"; else cp -a "$@"; fi; }
+copy() { if command -v rsync >/dev/null 2>&1; then rsync -a --checksum "$@"; else cp -a "$@"; fi; }
 mkdir -p "$PO_TARGET/assets" "$PO_TARGET/api"
 [ -d "$REL/assets" ] && copy "$REL/assets/." "$PO_TARGET/assets/"
 for f in "$REL"/*.svg "$REL"/manus-routes.json "$REL"/robots.txt; do if [ -f "$f" ]; then copy "$f" "$PO_TARGET/"; fi; done

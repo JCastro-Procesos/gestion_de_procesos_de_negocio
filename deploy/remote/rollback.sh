@@ -27,12 +27,14 @@ SAFETY="$PO_BACKUPS/files-${STAMP}-antes-de-reversion.tar.gz"
 tar -C "$PO_TARGET" -czf "$SAFETY" . && chmod 600 "$SAFETY"
 log "Respaldo de seguridad del estado actual: $(basename "$SAFETY")"
 
-copy() { if command -v rsync >/dev/null 2>&1; then rsync -a "$@"; else cp -a "$@"; fi; }
+copy() { if command -v rsync >/dev/null 2>&1; then rsync -a --checksum "$@"; else cp -a "$@"; fi; }
 # Primero todo menos index.html; index.html al final.
 ( cd "$TMP" && find . -type f ! -path './index.html' -print0 ) | while IFS= read -r -d '' f; do
   mkdir -p "$PO_TARGET/$(dirname "$f")"; copy "$TMP/$f" "$PO_TARGET/$f"
 done
 copy "$TMP/index.html" "$PO_TARGET/index.html"
+# Los archivos extraídos heredan permisos privados (umask 077): el servidor web debe poder leerlos.
+find "$PO_TARGET" -type d -exec chmod 755 {} + ; find "$PO_TARGET" -type f -exec chmod 644 {} +
 # Si el respaldo no traía version.json (versiones previas a este flujo), dejar constancia de la reversión.
 if [ ! -f "$TMP/version.json" ]; then
   printf '{"release":"restaurado-%s","restored_at":"%s"}\n' "${BACKUP%.tar.gz}" "$STAMP" > "$PO_TARGET/version.json"

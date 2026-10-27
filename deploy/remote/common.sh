@@ -10,8 +10,10 @@ PO_BACKUPS="$HOME/processone-backups"      # respaldos (fuera de public_html, pe
 PO_KEEP_BACKUPS="${PO_KEEP_BACKUPS:-10}"   # retención por tipo de respaldo
 PO_KEEP_RELEASES="${PO_KEEP_RELEASES:-5}"
 
-log()  { printf '[%s] %s\n' "$(date -u +%H:%M:%S)" "$*"; }
-die()  { printf '::error::%s\n' "$*"; exit 1; }
+# El repositorio es público: los registros nunca muestran la ruta real de la cuenta ($HOME → ~).
+po_mask() { local m="$*"; printf '%s' "${m//$HOME/\~}"; }
+log()  { printf '[%s] %s\n' "$(date -u +%H:%M:%S)" "$(po_mask "$*")"; }
+die()  { printf '::error::%s\n' "$(po_mask "$*")"; exit 1; }
 
 # Únicas rutas de publicación aceptadas (producción y pruebas de ProcessOne).
 po_allowed_path() {
