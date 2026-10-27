@@ -1,0 +1,50 @@
+name: Revertir ProcessOne (con aprobación)
+
+# Restaura los ARCHIVOS del sitio desde un respaldo. No modifica la base de datos.
+# Usa "listar" para ver los respaldos disponibles antes de restaurar.
+on:
+  workflow_dispatch:
+    inputs:
+      destino:
+        description: 'Entorno'
+        type: choice
+        options: [produccion, pruebas]
+        default: produccion
+      respaldo:
+        description: 'Nombre del respaldo (files-....tar.gz) o "listar"'
+        type: string
+        default: listar
+
+permissions:
+  contents: read
+
+concurrency:
+  group: processone-deploy-${{ inputs.destino }}
+  cancel-in-progress: false
+
+jobs:
+  revertir:
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.destino == 'produccion' && 'processone-production' || 'processone-staging' }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Preparar conexión SSH verificada
+        env:
+          SSH_KEY: ${{ secrets.HOSTINGER_SSH_KEY }}
+          HOST: ${{ vars.HOSTINGER_HOST }}
+          PORT: ${{ vars.HOSTINGER_PORT }}
+          USER_SSH: ${{ vars.HOSTINGER_USER }}
+          FP: ${{ vars.HOSTINGER_HOST_FINGERPRINT }}
+        run: bash deploy/ssh-setup.sh
+      - name: Revertir o listar respaldos
+        env:
+          DEPLOY_PATH: ${{ vars.HOSTINGER_DEPLOY_PATH }}
+          RESPALDO: ${{ inputs.respaldo }}
+        run: |
+          cat deploy/remote/common.sh deploy/remote/rollback.sh | ssh hostinger bash -s -- "$DEPLOY_PATH" "$RESPALDO"
+      - name: Verificar sitio
+        if: inputs.respaldo != 'listar'
+        run: bash deploy/smoke-test.sh "${{ vars.PROCESSONE_SITE_URL }}"
+      - name: Limpiar clave
+        if: always()
+        run: rm -rf ~/.ssh

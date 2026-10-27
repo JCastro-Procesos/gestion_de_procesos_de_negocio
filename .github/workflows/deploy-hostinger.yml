@@ -1,9 +1,14 @@
-name: Publicar ITM Project Hub en Hostinger
+name: "[OBSOLETO] Publicar ITM Project Hub en Hostinger (FTPS)"
 
+# DESACTIVADO: publicaba en la raíz de procesos.viajescasal.com con cada push a main,
+# sin aprobación y sin la API PHP. Sustituido por deploy-processone.yml (SSH + aprobación).
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
+    inputs:
+      confirmar_obsoleto:
+        description: 'Flujo obsoleto. Escribe USAR-FTPS-OBSOLETO solo si sabes lo que haces'
+        type: string
+        default: ''
 
 permissions:
   contents: read
@@ -17,6 +22,11 @@ jobs:
     runs-on: ubuntu-latest
     environment: hostinger-production
     steps:
+      - name: Bloqueo de flujo obsoleto
+        env:
+          CONFIRMAR: ${{ inputs.confirmar_obsoleto }}
+        run: |
+          test "$CONFIRMAR" = "USAR-FTPS-OBSOLETO" || { echo "::error::Flujo obsoleto. Usa 'Publicar ProcessOne (con aprobación)'."; exit 1; }
       - name: Verificar configuración segura
         env:
           FTP_HOST: ${{ secrets.HOSTINGER_FTP_HOST }}

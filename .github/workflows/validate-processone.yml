@@ -1,14 +1,19 @@
 name: Validación ProcessOne (sin despliegue)
 on:
   workflow_dispatch:
+  workflow_call:
   pull_request:
     paths:
       - 'src/**'
       - 'server/**'
+      - 'deploy/**'
       - 'package.json'
       - 'pnpm-lock.yaml'
       - 'vite.hostinger.config.ts'
       - '.github/workflows/validate-processone.yml'
+      - '.github/workflows/deploy-processone.yml'
+      - '.github/workflows/rollback-processone.yml'
+      - '.github/workflows/diagnose-processone-ssh.yml'
 permissions:
   contents: read
 jobs:
@@ -34,6 +39,12 @@ jobs:
         run: |
           php -l server/api/index.php
           php -l server/api/setup.php
+      - name: Validar scripts de despliegue
+        run: |
+          for f in deploy/*.sh deploy/remote/*.sh; do bash -n "$f"; done
+          shellcheck -S error deploy/*.sh deploy/remote/*.sh
+      - name: Armar y verificar paquete (exclusiones y secretos)
+        run: bash deploy/build-package.sh "validacion-${GITHUB_RUN_NUMBER}"
       - name: Guardar compilación para revisión (no publicar)
         uses: actions/upload-artifact@v4
         with:
