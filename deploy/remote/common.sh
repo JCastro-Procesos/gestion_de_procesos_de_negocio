@@ -49,7 +49,7 @@ po_config_path() {
 
 # Nombre de la base configurada (solo el nombre, nunca credenciales).
 po_db_name() {
-  php -r '$c=@include $argv[1]; echo is_array($c)?($c["database"]??""):"";' "$1"
+  php -r 'ob_start(); $c=@include $argv[1]; ob_end_clean(); echo is_array($c)?($c["database"]??""):"";' "$1"
 }
 
 po_prune() { # $1=directorio $2=patrón $3=cuántos conservar
