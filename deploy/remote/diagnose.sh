@@ -22,12 +22,12 @@ find "$HOME/domains" -maxdepth 4 -type d \( -name 'procesos*' -o -path '*proceso
   allowed=no; po_allowed_path "$real" && allowed=sí
   log "   - $real | index.html:$idx api/index.php:$api ProcessOne:$po permitido:$allowed"
   [ -f "$real/api/setup.php" ] && log "     ¡ATENCIÓN! existe api/setup.php en $real"
-  [ -f "$real/api/index.php" ] && log "     config usada por la API: $(po_config_path "$real/api/index.php")"
+  [ -f "$real/api/index.php" ] && log "     config usada por la API: $(po_config_path "$real" "$real/api/index.php")"
   [ -f "$real/index.html" ] && log "     versión publicada (bundle): $(grep -oE 'assets/index-[A-Za-z0-9_-]+\.js' "$real/index.html" | head -n1) · index.html modificado: $(date -r "$real/index.html" '+%Y-%m-%d %H:%M')"
   [ -f "$real/api/index.php" ] && log "     api/index.php: $(wc -c < "$real/api/index.php") bytes · sha256 $(sha256sum "$real/api/index.php" | cut -c1-12) · modificado: $(date -r "$real/api/index.php" '+%Y-%m-%d %H:%M')"
 done
 
-for cfg in "$HOME/processone-private/config.php" "$HOME/processone-privado/config.php"; do
+for cfg in "$HOME/processone-private/config.php" "$HOME/processone-pruebas-private/config.php"; do
   if [ -f "$cfg" ]; then
     log "Config $cfg: existe · permisos $(stat -c %a "$cfg") · base: $(po_db_name "$cfg")"
     case "$cfg" in "$HOME"/domains/*) log "   ¡ATENCIÓN! config dentro de domains";; esac
