@@ -1,9 +1,16 @@
-name: Mantenimiento ProcessOne · retirar copia duplicada (con aprobación)
+name: Mantenimiento ProcessOne (con aprobación)
 
-# Tarea única: mueve public_html/public_html/procesos a ~/processone-backups.
-# No borra archivos. Requiere aprobación del entorno processone-production.
+# Tareas de mantenimiento de producción. Requieren aprobación del entorno processone-production.
+#  - permisos-config: config.php a 600, con verificación y restauración automática si falla.
+#  - retirar-duplicado: mueve public_html/public_html/procesos a ~/processone-backups (no borra).
 on:
   workflow_dispatch:
+    inputs:
+      tarea:
+        description: 'Tarea'
+        type: choice
+        options: [permisos-config, retirar-duplicado]
+        default: permisos-config
 
 permissions:
   contents: read
@@ -13,7 +20,7 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  retirar-duplicado:
+  mantenimiento:
     runs-on: ubuntu-latest
     environment: processone-production
     steps:
@@ -26,7 +33,12 @@ jobs:
           USER_SSH: ${{ vars.HOSTINGER_USER }}
           FP: ${{ vars.HOSTINGER_HOST_FINGERPRINT }}
         run: bash deploy/ssh-setup.sh
+      - name: Restringir config.php a 600 (con verificación)
+        if: inputs.tarea == 'permisos-config' || inputs.tarea == ''
+        run: |
+          cat deploy/remote/common.sh deploy/remote/harden-config.sh | ssh hostinger bash -s -- "${{ vars.PROCESSONE_SITE_URL }}"
       - name: Mover copia duplicada a respaldos (sin borrar)
+        if: inputs.tarea == 'retirar-duplicado'
         env:
           DEPLOY_PATH: ${{ vars.HOSTINGER_DEPLOY_PATH }}
         run: |
@@ -34,6 +46,7 @@ jobs:
       - name: Verificar que producción sigue funcionando
         run: bash deploy/smoke-test.sh "${{ vars.PROCESSONE_SITE_URL }}"
       - name: Verificar que la copia ya no es pública
+        if: inputs.tarea == 'retirar-duplicado'
         run: |
           body="$(curl -sS -m 20 "https://viajescasal.com/public_html/procesos/?nc=$(date +%s)" || true)"
           if echo "$body" | grep -q 'ProcessOne'; then echo "::error::La copia sigue respondiendo"; exit 1; fi
