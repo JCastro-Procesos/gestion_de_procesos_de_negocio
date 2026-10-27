@@ -71,7 +71,7 @@ copy "$REL/version.json" "$PO_TARGET/version.json"
 copy "$REL/index.html" "$PO_TARGET/index.html"
 # No modificar permisos de archivos ajenos a esta publicación.
 chmod 755 "$PO_TARGET/assets" "$PO_TARGET/api"
-find "$REL/assets" -type d -exec chmod 755 "$PO_TARGET/assets/{}" \; 2>/dev/null || true
+[ ! -d "$REL/assets" ] || ( cd "$REL/assets" && find . -type f -print0 | while IFS= read -r -d "" f; do chmod 644 "$PO_TARGET/assets/$f"; done )
 chmod 644 "$PO_TARGET/api/index.php" "$PO_TARGET/.htaccess" "$PO_TARGET/version.json" "$PO_TARGET/index.html"
 for f in "$REL"/*.svg "$REL"/manus-routes.json "$REL"/robots.txt; do
   [ ! -f "$f" ] || chmod 644 "$PO_TARGET/$(basename "$f")"
