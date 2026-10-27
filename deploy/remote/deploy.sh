@@ -18,7 +18,13 @@ PKG="$PO_BASE/incoming/processone-${RELEASE_ID}.tar.gz"
 log "1/6 Paquete recibido y verificado (sha256)."
 
 REL="$PO_BASE/releases/$RELEASE_ID"
-rm -rf -- "$REL"; mkdir -p "$REL"
+# Validar entradas del paquete antes de extraer.
+tar -tzf "$PKG" | while IFS= read -r entry; do
+  case "$entry" in /*|../*|*/../*|*/..|./../*) die "Ruta insegura en paquete";; esac
+done
+if tar -tvzf "$PKG" | grep -Eq '^[lh]'; then die "Enlaces no permitidos en el paquete"; fi
+[ ! -e "$REL" ] || die "Identificador de versión ya existente"
+mkdir -p "$REL"
 tar -xzf "$PKG" -C "$REL"
 if find "$REL" \( -iname 'setup.php' -o -iname 'config.php' -o -iname '.env*' -o -iname '*.sql*' -o -iname '*.pem' -o -iname '*.key' \) | grep -q .; then
   die "El paquete contiene archivos prohibidos"
@@ -63,7 +69,13 @@ copy "$REL/api/index.php" "$PO_TARGET/api/index.php"
 copy "$REL/.htaccess" "$PO_TARGET/.htaccess"
 copy "$REL/version.json" "$PO_TARGET/version.json"
 copy "$REL/index.html" "$PO_TARGET/index.html"
-find "$PO_TARGET" -type d -exec chmod 755 {} + ; find "$PO_TARGET" -type f -exec chmod 644 {} +
+# No modificar permisos de archivos ajenos a esta publicación.
+chmod 755 "$PO_TARGET/assets" "$PO_TARGET/api"
+find "$REL/assets" -type d -exec chmod 755 "$PO_TARGET/assets/{}" \; 2>/dev/null || true
+chmod 644 "$PO_TARGET/api/index.php" "$PO_TARGET/.htaccess" "$PO_TARGET/version.json" "$PO_TARGET/index.html"
+for f in "$REL"/*.svg "$REL"/manus-routes.json "$REL"/robots.txt; do
+  [ ! -f "$f" ] || chmod 644 "$PO_TARGET/$(basename "$f")"
+done
 [ ! -f "$PO_TARGET/api/setup.php" ] || log "AVISO: existe api/setup.php en el servidor (no lo creó este despliegue). Elimínalo manualmente."
 log "5/6 Archivos publicados (sin eliminar archivos existentes)."
 
