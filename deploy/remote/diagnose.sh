@@ -41,7 +41,7 @@ cfg="$HOME/processone-private/config.php"
 if [ -f "$cfg" ]; then
   log "Base de datos de ProcessOne (solo lectura):"
   php -r '
-    $c=include $argv[1];
+    ob_start(); $c=include $argv[1]; ob_end_clean();
     try { $db=new PDO("mysql:host=".($c["host"]??"localhost").";dbname=".$c["database"].";charset=utf8mb4",$c["username"],$c["password"],[PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION]); }
     catch(Throwable $e){ echo "   no se pudo conectar\n"; exit; }
     foreach($db->query("SHOW TABLES")->fetchAll(PDO::FETCH_COLUMN) as $t){

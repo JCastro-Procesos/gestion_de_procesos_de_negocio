@@ -42,7 +42,7 @@ echo "BACKUP_FILES=$(basename "$FILES_BK")"
 
 DB_BK="$PO_BACKUPS/db-${DBNAME}-${STAMP}.sql.gz"
 DEFS="$(mktemp "$PO_BASE/.my.XXXXXX")"; trap 'rm -f -- "$DEFS"' EXIT
-php -r '$c=include $argv[1]; $e=function($v){return str_replace(["\\","\""],["\\\\","\\\""],(string)$v);}; echo "[client]\nuser=\"".$e($c["username"])."\"\npassword=\"".$e($c["password"])."\"\nhost=\"".$e($c["host"]??"localhost")."\"\n";' "$CFG" > "$DEFS"
+php -r 'ob_start(); $c=include $argv[1]; ob_end_clean(); $e=function($v){return str_replace(["\\","\""],["\\\\","\\\""],(string)$v);}; echo "[client]\nuser=\"".$e($c["username"])."\"\npassword=\"".$e($c["password"])."\"\nhost=\"".$e($c["host"]??"localhost")."\"\n";' "$CFG" > "$DEFS"
 chmod 600 "$DEFS"
 mysqldump --defaults-extra-file="$DEFS" --single-transaction --quick --no-tablespaces --skip-lock-tables "$DBNAME" | gzip > "$DB_BK"
 rm -f -- "$DEFS"
