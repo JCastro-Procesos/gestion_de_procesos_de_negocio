@@ -25,7 +25,7 @@ done
 if tar -tvzf "$PKG" | grep -Eq '^[lh]'; then die "Enlaces no permitidos en el paquete"; fi
 [ ! -e "$REL" ] || die "Identificador de versión ya existente"
 mkdir -p "$REL"
-tar -xzf "$PKG" -C "$REL"
+tar -xzf "$PKG" -C "$REL" --no-same-owner --no-same-permissions
 if find "$REL" \( -iname 'setup.php' -o -iname 'config.php' -o -iname '.env*' -o -iname '*.sql*' -o -iname '*.pem' -o -iname '*.key' \) | grep -q .; then
   die "El paquete contiene archivos prohibidos"
 fi
