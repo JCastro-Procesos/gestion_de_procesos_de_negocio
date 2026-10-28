@@ -56,8 +56,9 @@ if ($action === 'cells_v12') {
    if(!$check->fetchColumn()){ $db->rollBack();reply(404,['error'=>'Célula no encontrada']); }
    logAction($db,$uid,'update','cell',(string)$id);
   }
-  // Reemplazo transaccional de membresías vigentes (sin historial en esta fase).
-  $db->prepare("DELETE FROM po_cell_members_v12 WHERE cell_id=?")->execute([$id]);
+  // Cierra membresías anteriores; las altas del mismo día se reemplazan sin duplicar PK.
+  $db->prepare("DELETE FROM po_cell_members_v12 WHERE cell_id=? AND effective_from=CURRENT_DATE")->execute([$id]);
+  $db->prepare("UPDATE po_cell_members_v12 SET effective_to=DATE_SUB(CURRENT_DATE,INTERVAL 1 DAY) WHERE cell_id=? AND effective_from<CURRENT_DATE AND (effective_to IS NULL OR effective_to>=CURRENT_DATE)")->execute([$id]);
   $add=$db->prepare("INSERT INTO po_cell_members_v12(cell_id,user_id,role,allocated_hours_week,effective_from,effective_to) VALUES (?,?,?,?,CURRENT_DATE,NULL)");
   foreach($normalized as $m){$add->execute([$id,$m['userId'],$m['userId']===$leader?'Líder':'Integrante',$m['hours']]);}
   $db->commit();reply($method==='POST'?201:200,['ok'=>true,'id'=>$id]);
