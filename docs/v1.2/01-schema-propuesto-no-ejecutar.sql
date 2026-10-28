@@ -51,14 +51,14 @@ CREATE TABLE IF NOT EXISTS po_initiative_details_v12 (
 -- Rol principal se almacena por separado: una sola iniciativa principal por proyecto.
 -- Las relaciones secundarias actuales se conservan en po_initiative_projects.
 CREATE TABLE IF NOT EXISTS po_project_governance_v12 (
- project_id VARCHAR(80) PRIMARY KEY,
+ project_id VARCHAR(100) PRIMARY KEY,
  primary_initiative_id BIGINT UNSIGNED NULL,
  cell_id BIGINT UNSIGNED NULL,
  process_owner_user_id BIGINT UNSIGNED NULL,
  project_manager_user_id BIGINT UNSIGNED NULL,
  methodology_version_id BIGINT UNSIGNED NULL,
  regularization_status ENUM('Pendiente','Completa') NOT NULL DEFAULT 'Pendiente',
- FOREIGN KEY (primary_initiative_id) REFERENCES po_initiatives(id) ON DELETE SET NULL,
+ FOREIGN KEY (project_id) REFERENCES po_projects(id) ON DELETE CASCADE,\n FOREIGN KEY (primary_initiative_id) REFERENCES po_initiatives(id) ON DELETE SET NULL,
  FOREIGN KEY (cell_id) REFERENCES po_cells_v12(id) ON DELETE SET NULL,
  FOREIGN KEY (process_owner_user_id) REFERENCES po_users(id) ON DELETE SET NULL,
  FOREIGN KEY (project_manager_user_id) REFERENCES po_users(id) ON DELETE SET NULL
@@ -93,8 +93,8 @@ CREATE TABLE IF NOT EXISTS po_activity_templates_v12 (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE IF NOT EXISTS po_activity_origins_v12 (
- project_id VARCHAR(80) NOT NULL,
- activity_id VARCHAR(80) NOT NULL,
+ project_id VARCHAR(100) NOT NULL,
+ activity_id VARCHAR(100) NOT NULL,
  template_id BIGINT UNSIGNED NOT NULL,
  template_version INT NOT NULL,
  origin ENUM('Metodología','Iniciativa','Gobierno') NOT NULL,
@@ -127,4 +127,4 @@ CREATE TABLE IF NOT EXISTS po_kpi_measurements_v12 (
  INDEX idx_kpi_date (kpi_id,measured_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- No se aplica FK methodology_version_id hasta verificar el orden de migración.\n-- No se aplica FK project_id: po_projects y workspace JSON pueden diferir en IDs.
+-- No se aplica FK methodology_version_id hasta verificar el orden de migración.\n-- La FK project_id usa po_projects.id VARCHAR(100); revisar proyectos sólo presentes en workspace JSON.
