@@ -50,3 +50,17 @@
 - [ ] Pruebas de integración y seguridad con datos reales de staging.
 
 **No publicar ni fusionar** hasta cerrar los criterios pendientes.
+
+## Avance adicional 2026-10-28
+- Confirmado: **Process Owner y responsable del proyecto son roles independientes**; una persona puede ocupar ambos.
+- Comparados los tipos base con `database/processone_mysql.sql`: `po_users.id` e `po_initiatives.id` son BIGINT UNSIGNED; `po_projects.id` es VARCHAR(100).
+- Se conserva `po_initiatives` y `po_initiative_projects` existentes; la propuesta agrega detalles sin duplicar ni eliminar registros.
+- Endpoint `cells_v12` de lectura, alta y edición con autenticación, CSRF, validaciones, control de permisos y auditoría. Requiere instalar migración antes de habilitarlo.
+- Pantalla de células integrada en Iniciativas, con registro y edición básica; asignación de líder e integrantes sigue pendiente.
+- Se añadieron pruebas para roles independientes, validación de usuarios activos e iniciativa principal única.
+
+## Estado de cierre
+**No se puede considerar el bloque desplegado o validado**: falta ejecutar CI, revisar el DDL con MySQL real, probar migración y rollback en staging, integrar membresías y persistencia de asignaciones, y verificar permisos con sesiones reales. No fusionar este PR a main hasta completar esas verificaciones.
+
+## Advertencia sobre despliegue
+El endpoint nuevo sólo funciona después de crear las tablas de staging. La rama no debe desplegarse antes de la migración. El esquema sigue marcado como propuesta: `CREATE TABLE IF NOT EXISTS` no verifica equivalencia de una tabla preexistente.
