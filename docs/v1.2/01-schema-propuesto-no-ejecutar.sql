@@ -127,8 +127,4 @@ CREATE TABLE IF NOT EXISTS po_kpi_measurements_v12 (
  INDEX idx_kpi_date (kpi_id,measured_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-ALTER TABLE po_project_governance_v12
- ADD CONSTRAINT fk_governance_methodology_v12
- FOREIGN KEY (methodology_version_id) REFERENCES po_methodology_versions_v12(id) ON DELETE SET NULL;
--- IMPORTANTE: ALTER no es idempotente. Ejecutar sólo si la constraint no existe.
--- No se aplica FK project_id: po_projects y workspace JSON pueden diferir en IDs.
+-- No se aplica FK methodology_version_id hasta verificar el orden de migración.\n-- No se aplica FK project_id: po_projects y workspace JSON pueden diferir en IDs.
