@@ -64,3 +64,12 @@
 
 ## Advertencia sobre despliegue
 El endpoint nuevo sólo funciona después de crear las tablas de staging. La rama no debe desplegarse antes de la migración. El esquema sigue marcado como propuesta: `CREATE TABLE IF NOT EXISTS` no verifica equivalencia de una tabla preexistente.
+
+## Asignación de integrantes y líderes — implementada en rama (2026-10-28)
+- El formulario de células permite seleccionar integrantes activos, asignar horas semanales individuales y elegir líder entre los integrantes seleccionados.
+- Se admite una misma persona en varias células; el líder debe estar incluido en su propia célula.
+- API GET retorna células, integrantes vigentes y usuarios activos. POST/PUT valida permisos, CSRF, usuarios activos, capacidades no negativas, duplicados y consistencia del líder.
+- La actualización de la célula y su equipo es transaccional. Las membresías históricas previas se cierran el día anterior y las asignaciones del día se reemplazan para evitar duplicados.
+- Gerencia, Dirección y Administración pueden modificar; Especialista puede consultar. No se alteran roles de autenticación.
+- **Limitación:** los cambios repetidos durante el mismo día sustituyen la membresía vigente de ese día; el registro de auditoría guarda la acción general, no el detalle completo de diferencias. Para auditoría granular, ampliar eventos en otro bloque.
+- **Sin validación de ejecución:** no se han corrido pruebas de PHP, TypeScript, MySQL o E2E de esta rama ni se ha desplegado staging. El SQL continúa siendo borrador, requiere validación de DDL real.
