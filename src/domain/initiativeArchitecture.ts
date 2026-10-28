@@ -123,3 +123,35 @@ export function validateCellCapacity(value: number | null): boolean {
 export function validateTemplateStage(order: number): order is ActivityTemplate['stageOrder'] {
   return Number.isInteger(order) && order >= 1 && order <= 6;
 }
+
+/**
+ * Process Owner representa al cliente responsable de aceptar resultados.
+ * Project Manager coordina la ejecución. Pueden ser la misma persona.
+ * No se fusionan los roles ni se heredan privilegios de acceso entre ellos.
+ */
+export function validateGovernanceAssignments(
+  value: Partial<ApprovedProjectGovernance>,
+  activeUserIds: ReadonlySet<string>
+): string[] {
+  const errors = validateApprovedProjectGovernance(value);
+  for (const key of ['processOwnerUserId','projectManagerUserId'] as const) {
+    const id = value[key]?.trim();
+    if (id && !activeUserIds.has(id)) errors.push('Usuario inactivo o inexistente: '+key);
+  }
+  return errors;
+}
+
+/** Vínculos históricos se aceptan sin principal mientras se regularizan. */
+export function validateInitiativeLinks(
+  projectId: string,
+  links: readonly InitiativeProjectLink[],
+  approved: boolean
+): string[] {
+  const scoped = links.filter(link => link.projectId === projectId);
+  const primary = scoped.filter(link => link.role === 'Principal');
+  const errors: string[] = [];
+  if (primary.length > 1) errors.push('Un proyecto no puede tener más de una iniciativa principal');
+  if (approved && primary.length !== 1) errors.push('Un proyecto aprobado requiere exactamente una iniciativa principal');
+  if (new Set(scoped.map(link => link.initiativeId)).size !== scoped.length) errors.push('Iniciativas duplicadas en el proyecto');
+  return errors;
+}
