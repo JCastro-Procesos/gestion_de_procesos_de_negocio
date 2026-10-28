@@ -21,6 +21,7 @@ if ($action === 'cells_v12') {
  $capacity=isset($d['capacityHoursPerWeek']) && $d['capacityHoursPerWeek']!==''?(float)$d['capacityHoursPerWeek']:null;
  if(!preg_match('/^[A-Z0-9_-]{2,32}$/',$code)||mb_strlen($name)<3||mb_strlen($name)>190||mb_strlen($mission)>5000||!in_array($status,['Borrador','Activa','Pausada','Archivada'],true)||($capacity!==null&&(!is_finite($capacity)||$capacity<0||$capacity>999999)))reply(400,['error'=>'Datos de célula inválidos']);
  if($leader!==null){$q=$db->prepare('SELECT id FROM po_users WHERE id=? AND active=1');$q->execute([$leader]);if(!$q->fetchColumn())reply(400,['error'=>'El líder debe ser un usuario activo']);}
+ if($method==='PUT' && $id<1)reply(400,['error'=>'ID inválido']);
  try {
   $db->beginTransaction();
   if($method==='POST'){
@@ -28,7 +29,6 @@ if ($action === 'cells_v12') {
    $q->execute([$code,$name,$mission,$leader,$status,$capacity]);$id=(int)$db->lastInsertId();
    logAction($db,$uid,'create','cell',(string)$id);
   }else{
-   if($id<1)reply(400,['error'=>'ID inválido']);
    $q=$db->prepare('UPDATE po_cells_v12 SET code=?,name=?,mission=?,leader_user_id=?,status=?,capacity_hours_week=? WHERE id=?');
    $q->execute([$code,$name,$mission,$leader,$status,$capacity,$id]);
    $check=$db->prepare('SELECT id FROM po_cells_v12 WHERE id=?');$check->execute([$id]);
