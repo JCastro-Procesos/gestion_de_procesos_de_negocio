@@ -45,9 +45,9 @@ if($parent!==null){
  if($q->fetchColumn())reply(409,['error'=>'No se puede cambiar el nivel: esta iniciativa tiene dependientes']);
 }
 if($level==='Departamental'&&$parent===null)reply(400,['error'=>'Selecciona una iniciativa corporativa superior']);
-if($level==='Corporativa'){
+if($level==='Departamental'){
  $q=$db->prepare('SELECT 1 FROM po_initiative_details_v12 WHERE parent_initiative_id=? LIMIT 1');$q->execute([$id]);
- // Las iniciativas hijas pueden mantenerse al editar el nivel corporativo.
+ if($q->fetchColumn())reply(409,['error'=>'No se puede cambiar a departamental: existen iniciativas dependientes']);
 }
 if($cell!==null){$q=$db->prepare("SELECT id FROM po_cells_v12 WHERE id=? AND status <> 'Archivada'");$q->execute([$cell]);if(!$q->fetchColumn())reply(400,['error'=>'Célula no disponible']);}
 foreach([$sponsor,$owner] as $person){if($person!==null){$q=$db->prepare('SELECT id FROM po_users WHERE id=? AND active=1');$q->execute([$person]);if(!$q->fetchColumn())reply(400,['error'=>'Responsable no disponible']);}}
