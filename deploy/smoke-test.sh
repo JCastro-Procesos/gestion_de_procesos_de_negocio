@@ -17,7 +17,7 @@ if [ -n "$js" ]; then code="$(get "$URL$js")"; [ "$code" = 200 ] && ok "Bundle $
 code="$(get "$URL/api/index.php")"; [ "$code" = 401 ] && grep -q 'Inicia sesi' /tmp/body && ok "API conectada a MySQL (401 sin sesión)" || ko "API: HTTP $code $(head -c 120 /tmp/body)"
 code="$(get "$URL/api/index.php?action=cells_v12")"; [ "$code" = 401 ] && grep -q "Inicia sesi" /tmp/body && ok "Ruta cells_v12 protegida sin sesión (401)" || ko "Ruta cells_v12: HTTP $code $(head -c 120 /tmp/body)"
 code="$(get "$URL/api/index.php?action=initiative_details_v12")"; [ "$code" = 401 ] && grep -q "Inicia sesi" /tmp/body && ok "Ruta initiative_details_v12 protegida (401)" || ko "Ruta initiative_details_v12: HTTP $code $(head -c 120 /tmp/body)"
-for route in methodologies_v12 initiative_kpis_v12; do
+for route in methodologies_v12 initiative_kpis_v12 project_strategy_v12; do
   code="$(get "$URL/api/index.php?action=$route")"; [ "$code" = 401 ] && ok "Ruta $route protegida (401)" || ko "Ruta $route: HTTP $code"
 done
 code="$(get "$URL/api/setup.php")"; grep -q 'Activar administrador' /tmp/body && ko "setup.php está expuesto" || ok "setup.php no expuesto"
