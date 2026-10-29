@@ -40,7 +40,7 @@ fi
 # API PHP: publicar únicamente los módulos explícitamente autorizados.
 # setup.php y los archivos de configuración NUNCA se distribuyen.
 mkdir -p release/site/api
-cp server/api/index.php server/api/cells_v12.php server/api/initiative_details_v12.php server/api/strategy_v12.php release/site/api/
+cp server/api/index.php server/api/cells_v12.php server/api/initiative_details_v12.php server/api/strategy_v12.php server/api/project_strategy_v12.php release/site/api/
 
 # Identificador de versión (sin datos sensibles) para verificar la publicación.
 COMMIT="$(git rev-parse HEAD 2>/dev/null || echo desconocido)"
