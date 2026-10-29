@@ -66,7 +66,7 @@ for cfg in "$HOME/processone-pruebas-private/config.php" "$HOME/processone-priva
   php -r '
     ob_start(); $c=include $argv[1]; ob_end_clean();
     $u=(string)($c["smtp_user"]??""); $h=(string)($c["smtp_host"]??""); $p=(int)($c["smtp_port"]??465);
-    echo "   mail_from: ".(($c["mail_from"]??"")!==""?$c["mail_from"]:"(vacío)")." · smtp_host: ".($h?:"(vacío)")." · puerto: $p · smtp_user: ".($u?:"(vacío)")." · smtp_pass: ".(empty($c["smtp_pass"])?"(vacío)":"configurada".(preg_match("/^\\s|\\s$/",(string)($c["smtp_pass"]??""))?" ⚠ tiene espacios o saltos al inicio/fin":"").(preg_match("/[^\\x20-\\x7E]/",(string)($c["smtp_pass"]??""))?" ⚠ contiene acentos o caracteres especiales no estándar":""))."\n";
+    echo "   mail_from: ".(($c["mail_from"]??"")!==""?$c["mail_from"]:"(vacío)")." · smtp_host: ".($h?:"(vacío)")." · puerto: $p · smtp_user: ".($u?:"(vacío)")." · smtp_pass: ".(empty($c["smtp_pass"])?"(vacío)":"configurada (".mb_strlen((string)$c["smtp_pass"])." caracteres)".(preg_match("/^\\s|\\s$/",(string)($c["smtp_pass"]??""))?" ⚠ tiene espacios o saltos al inicio/fin":"").(preg_match("/[^\\x20-\\x7E]/",(string)($c["smtp_pass"]??""))?" ⚠ contiene acentos o caracteres especiales no estándar":""))."\n";
     if(!$h||!$u||empty($c["smtp_pass"])){echo "   SMTP incompleto: la API usará mail() o no enviará.\n";exit;}
     $fp=@stream_socket_client(($p===465?"ssl://":"tcp://")."$h:$p",$en,$es,15);
     if(!$fp){echo "   CONEXIÓN FALLIDA: $es ($en)\n";exit;}
