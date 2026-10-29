@@ -44,3 +44,12 @@ No hay ALTER/DROP de tablas actuales, ni escritura a `po_initiatives` o `po_init
 - Los KPIs muestran cumplimiento por última medición, sin agregación ponderada entre iniciativas ni aprobaciones.
 - La jerarquía actual soporta corporativa → departamental; objetivos de área como entidad independiente siguen pendientes.
 - La validación de la compilación, pruebas de regresión y staging no está confirmada.
+
+## Integración con proyectos (rama de desarrollo)
+- `po_project_methodology_v12` enlaza proyecto existente, iniciativa y versión metodológica, sin reescribir el workspace.
+- `project_strategy_v12.php` valida existencia de proyecto/iniciativa, exige metodología publicada, seis etapas y rol Gerencia o superior; deja auditoría.
+- En el detalle del proyecto, `ProjectStrategyPanel` permite vincular y generar **solo las actividades faltantes** a partir de la versión seleccionada. No borra tareas, etapas ni evidencias existentes.
+- Publicación de metodología requiere justificación y se registra en auditoría.
+- Pruebas unitarias para cálculo KPI y prevención de duplicados añadidas.
+- Hostinger: acceso de lectura verificado para ambos subdominios. No se han ejecutado migraciones ni despliegues.
+- Pendiente de validación técnica real: compilación, tests CI, estructura SQL real y ejecución de migraciones **solo en pruebas**. No fusionar ni desplegar en producción.
