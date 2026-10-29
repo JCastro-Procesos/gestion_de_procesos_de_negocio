@@ -33,6 +33,8 @@ function member(PDO $db,bool $allowPending=false):array {
  $q=$db->prepare('SELECT id,name,email,role,active,avatar_animal,must_change_password FROM po_users WHERE id=? LIMIT 1');$q->execute([$_SESSION['uid']]);$u=$q->fetch();
  if(!$u || !$u['active']) { session_destroy(); reply(401,['error'=>'Acceso deshabilitado']); }
  $u['mustChangePassword']=(bool)$u['must_change_password'];unset($u['must_change_password']);
+ // Presencia: registra actividad como máximo una vez por minuto.
+ try{$db->prepare('UPDATE po_users SET last_seen_at=NOW() WHERE id=? AND (last_seen_at IS NULL OR last_seen_at<DATE_SUB(NOW(),INTERVAL 60 SECOND))')->execute([$u['id']]);}catch(Throwable $e){/* migración de presencia pendiente */}
  if($u['mustChangePassword'] && !$allowPending)reply(403,['error'=>'Debes cambiar tu contraseña temporal antes de continuar','code'=>'must_change_password']);
  return $u;
 }
@@ -137,13 +139,13 @@ if($action==='login' && $method==='POST'){
  if($u && $u['active'] && !empty($u['must_change_password']) && !empty($u['temp_expired']) && password_verify($password,$u['password_hash']))reply(401,['error'=>'Tu contraseña temporal venció. Pide al administrador que reenvíe la invitación.']);
  if(!$u || !$u['active'] || (!empty($u['invitation_pending']) && !$pendingOk) || !password_verify($password,$u['password_hash'])){$fail=$db->prepare('INSERT INTO po_login_attempts(ip_hash) VALUES (?)');$fail->execute([$ipHash]);usleep(300000);reply(401,['error'=>'Credenciales inválidas']);}
  session_regenerate_id(true);$_SESSION['uid']=(int)$u['id'];$_SESSION['csrf']=bin2hex(random_bytes(32));$u['mustChangePassword']=(bool)$u['must_change_password'];unset($u['password_hash'],$u['invitation_pending'],$u['must_change_password'],$u['temp_expired']);
- $db->prepare('UPDATE po_users SET last_login_at=NOW() WHERE id=?')->execute([$u['id']]);
+ try{$db->prepare('UPDATE po_users SET last_login_at=NOW(),last_seen_at=NOW() WHERE id=?')->execute([$u['id']]);}catch(Throwable $e){}
  logAction($db,(int)$u['id'],'login','user',(string)$u['id']);reply(200,['user'=>$u,'csrf'=>$_SESSION['csrf']]);
 }
 if($action==='session' && $method==='GET'){
  $u=member($db,true);$_SESSION['csrf']??=bin2hex(random_bytes(32));reply(200,['user'=>$u,'csrf'=>$_SESSION['csrf']]);
 }
-if($action==='logout' && $method==='POST'){csrf();session_destroy();reply(200,['ok'=>true]);}
+if($action==='logout' && $method==='POST'){csrf();if(!empty($_SESSION['uid'])){try{$db->prepare('UPDATE po_users SET last_logout_at=NOW() WHERE id=?')->execute([$_SESSION['uid']]);}catch(Throwable $e){}}session_destroy();reply(200,['ok'=>true]);}
 if($action==='password_change' && $method==='POST'){
  csrf();$me=member($db,true);$d=input();$old=(string)($d['oldPassword']??'');$new=(string)($d['newPassword']??'');
  if(strlen($new)<12||strlen($new)>256)reply(400,['error'=>'La contraseña debe tener al menos 12 caracteres']);
@@ -179,6 +181,12 @@ if($action==='workspace' && $method==='GET'){
 if($action==='workspace' && $method==='PUT'){
  csrf();if(level($role)<2)reply(403,['error'=>'Permiso insuficiente para modificar el espacio compartido']);$d=input();$payload=$d['workspace']??null;$rev=$d['revision']??null;
  if(!is_array($payload)||!is_int($rev)||!isset($payload['projects'],$payload['tasks'],$payload['members'])||!is_array($payload['projects'])||!is_array($payload['tasks']))reply(400,['error'=>'Datos inválidos']);
+ if(level($role)<3){
+  // Especialista e Ingeniero: no pueden cambiar la metodología de proyectos existentes.
+  $prev=$db->query("SELECT payload FROM po_workspace WHERE id='main' LIMIT 1")->fetchColumn();$prev=$prev?json_decode((string)$prev,true):null;$was=[];
+  foreach(($prev['projects']??[]) as $p){if(is_array($p)&&isset($p['id']))$was[(string)$p['id']]=$p['methodologyId']??null;}
+  foreach($payload['projects'] as $p){if(is_array($p)&&isset($p['id'])&&array_key_exists((string)$p['id'],$was)&&($p['methodologyId']??null)!=$was[(string)$p['id']])reply(403,['error'=>'Solo Gerencia, Dirección o Administración pueden cambiar la metodología de un proyecto']);}
+ }
  $json=json_encode($payload,JSON_UNESCAPED_UNICODE|JSON_THROW_ON_ERROR);
  if(strlen($json)>1500000)reply(413,['error'=>'Espacio demasiado grande']);
  $db->beginTransaction();
@@ -193,7 +201,14 @@ if($action==='workspace' && $method==='PUT'){
  }catch(Throwable $e){if($db->inTransaction())$db->rollBack();reply(500,['error'=>'No fue posible guardar']);}
 }
 if($action==='users' && $method==='GET'){
- if($role==='admin'){$rows=$db->query('SELECT id,name,email,role,active,avatar_animal,invitation_pending FROM po_users ORDER BY name')->fetchAll();}
+ if(level($role)>=3){
+  // Administración, Dirección y Gerencia: estado de activación y presencia (en línea = actividad en los últimos 3 minutos sin cierre de sesión posterior).
+  try{$rows=$db->query("SELECT id,name,email,role,active,avatar_animal,invitation_pending,last_login_at,last_seen_at,
+   (last_seen_at IS NOT NULL AND last_seen_at>DATE_SUB(NOW(),INTERVAL 3 MINUTE) AND (last_logout_at IS NULL OR last_logout_at<last_seen_at)) online,
+   NOW() server_now FROM po_users ORDER BY name")->fetchAll();}
+  catch(Throwable $e){$rows=$db->query("SELECT id,name,email,role,active,avatar_animal,invitation_pending,NULL last_login_at,NULL last_seen_at,0 online,NOW() server_now FROM po_users ORDER BY name")->fetchAll();}
+  if($role!=='admin'){foreach($rows as &$r){if($r['role']==='direccion')$r['role']='';}unset($r);}
+ }
  else{$rows=$db->query('SELECT id,name,avatar_animal FROM po_users WHERE active=1 ORDER BY name')->fetchAll();}
  reply(200,['users'=>$rows]);
 }

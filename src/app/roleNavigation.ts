@@ -3,7 +3,7 @@ const ACCESS:Record<string,ProcessOneRole[]>={
  perfil:['admin','direccion','gerencia','especialista','ingeniero'],
  dashboard:['admin','direccion','gerencia','especialista','ingeniero'],
  proyectos:['admin','direccion','gerencia','especialista','ingeniero'],
- iniciativas:['admin','direccion','gerencia','especialista'],
+ iniciativas:['admin','direccion','gerencia','especialista','ingeniero'],
  'mi-trabajo':['admin','direccion','gerencia','especialista','ingeniero'],
  tareas:['admin','direccion','gerencia','especialista','ingeniero'],
  equipo:['admin','direccion','gerencia','especialista'],
@@ -12,7 +12,7 @@ const ACCESS:Record<string,ProcessOneRole[]>={
  metodologias:['admin','direccion','gerencia','especialista','ingeniero'],
  gobierno:['admin','direccion','gerencia','especialista','ingeniero'],
  datos:['admin'],
- usuarios:['admin'],
+ usuarios:['admin','direccion','gerencia'],
  auditoria:['admin'],
  automatizacion:['admin','direccion','gerencia'],
  integraciones:['admin']

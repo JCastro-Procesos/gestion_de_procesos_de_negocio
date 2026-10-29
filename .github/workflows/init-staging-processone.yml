@@ -45,7 +45,7 @@ jobs:
           ssh hostinger 'umask 077; mkdir -p ~/processone-deploy/incoming/schema'
           for f in database/processone_mysql.sql database/processone_live_patch.sql \
                    database/migrations/20261023_governance_mysql.sql database/migrations/20261023_user_invites.sql \
-                   database/migrations/20261028_temp_password.sql; do
+                   database/migrations/20261028_temp_password.sql database/migrations/20261029_presencia_usuarios.sql; do
             ssh hostinger "umask 077; cat > ~/processone-deploy/incoming/schema/$(basename "$f")" < "$f"
           done
       - name: Configurar base y administrador de pruebas
