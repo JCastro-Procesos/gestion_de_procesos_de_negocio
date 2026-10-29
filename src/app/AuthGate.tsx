@@ -9,6 +9,8 @@ export function AuthGate(){
  const [email,setEmail]=useState(params.get('acceso')||''),[password,setPassword]=useState(''),[repeat,setRepeat]=useState(''),[old,setOld]=useState('');
  const [tempKnown,setTempKnown]=useState(''),[error,setError]=useState(''),[message,setMessage]=useState(''),[working,setWorking]=useState(false),[mode,setMode]=useState(isToken?'token':'login');
  useEffect(()=>{session().then(setUser).catch(()=>{}).finally(()=>setLoading(false))},[]);
+ // Señal de presencia: mantiene el estado "En línea" mientras la sesión está abierta.
+ useEffect(()=>{if(!user)return;const t=window.setInterval(()=>{if(document.visibilityState==='visible')void session().catch(()=>{});},90000);return()=>window.clearInterval(t);},[user]);
  const submit=async(e:React.FormEvent)=>{e.preventDefault();setError('');setMessage('');setWorking(true);
  try{
   if(mode==='token'){
