@@ -37,6 +37,8 @@ php -l "$REL/api/cells_v12.php" >/dev/null || die "Error de sintaxis PHP en cell
 php -l "$REL/api/initiative_details_v12.php" >/dev/null || die "Error de sintaxis PHP en initiative_details_v12.php"
 [ -s "$REL/api/strategy_v12.php" ] || die "Falta strategy_v12.php"
 php -l "$REL/api/strategy_v12.php" >/dev/null || die "Error de sintaxis PHP en strategy_v12.php"
+[ -s "$REL/api/project_strategy_v12.php" ] || die "Falta project_strategy_v12.php"
+php -l "$REL/api/project_strategy_v12.php" >/dev/null || die "Error de sintaxis PHP en project_strategy_v12.php"
 CFG="$(po_config_path "$PO_TARGET" "$REL/api/index.php")"
 [ -n "$CFG" ] && [ -f "$CFG" ] || die "La nueva API apunta a una configuración inexistente: $CFG"
 case "$CFG" in "$HOME"/domains/*) die "La configuración no debe estar dentro de domains";; esac
@@ -75,6 +77,7 @@ copy "$REL/api/index.php" "$PO_TARGET/api/index.php"
 copy "$REL/api/cells_v12.php" "$PO_TARGET/api/cells_v12.php"
 copy "$REL/api/initiative_details_v12.php" "$PO_TARGET/api/initiative_details_v12.php"
 copy "$REL/api/strategy_v12.php" "$PO_TARGET/api/strategy_v12.php"
+copy "$REL/api/project_strategy_v12.php" "$PO_TARGET/api/project_strategy_v12.php"
 [ -s "$PO_TARGET/api/initiative_details_v12.php" ] || die "No se publicó initiative_details_v12.php"
 [ -s "$PO_TARGET/api/cells_v12.php" ] || die "No se publicó cells_v12.php"
 copy "$REL/.htaccess" "$PO_TARGET/.htaccess"
@@ -83,7 +86,7 @@ copy "$REL/index.html" "$PO_TARGET/index.html"
 # No modificar permisos de archivos ajenos a esta publicación.
 chmod 755 "$PO_TARGET/assets" "$PO_TARGET/api"
 [ ! -d "$REL/assets" ] || ( cd "$REL/assets" && find . -type f -print0 | while IFS= read -r -d "" f; do chmod 644 "$PO_TARGET/assets/$f"; done )
-chmod 644 "$PO_TARGET/api/index.php" "$PO_TARGET/api/cells_v12.php" "$PO_TARGET/api/initiative_details_v12.php" "$PO_TARGET/api/strategy_v12.php" "$PO_TARGET/.htaccess" "$PO_TARGET/version.json" "$PO_TARGET/index.html"
+chmod 644 "$PO_TARGET/api/index.php" "$PO_TARGET/api/cells_v12.php" "$PO_TARGET/api/initiative_details_v12.php" "$PO_TARGET/api/strategy_v12.php" "$PO_TARGET/api/project_strategy_v12.php" "$PO_TARGET/.htaccess" "$PO_TARGET/version.json" "$PO_TARGET/index.html"
 for f in "$REL"/*.svg "$REL"/manus-routes.json "$REL"/robots.txt; do
   [ ! -f "$f" ] || chmod 644 "$PO_TARGET/$(basename "$f")"
 done
