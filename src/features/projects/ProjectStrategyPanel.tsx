@@ -1,3 +1,4 @@
+import {pendingTemplateActivities} from '../../domain/projectTemplateIntegration';
 import {useEffect,useState} from 'react';
 import {api,session,type CurrentUser} from '../../data/processoneApi';
 import type {Project,Stage,Workspace} from '../../domain/model';
@@ -14,7 +15,7 @@ export function ProjectStrategyPanel({project,workspace,onUpdateStage,toast}:{pr
  const canEdit=!!user&&['admin','direccion','gerencia'].includes(user.role);
  const selectedStages=stages.filter(s=>Number(s.template_id)===Number(templateId)).sort((a,b)=>Number(a.stage_order)-Number(b.stage_order));
  const projectStages=workspace.stages.filter(s=>s.projectId===project.id);
- const preview=selectedStages.map(s=>{const target=projectStages.find(x=>x.order===Number(s.stage_order));const pending=activities.filter(a=>Number(a.stage_id)===Number(s.id)&&!target?.activities.some(x=>x.name.trim().toLowerCase()===a.title.trim().toLowerCase()));return {stage:s,target,pending}});
+ const preview=selectedStages.map(s=>{const target=projectStages.find(x=>x.order===Number(s.stage_order));const pending=pendingTemplateActivities(target,activities.filter(a=>Number(a.stage_id)===Number(s.id)));return {stage:s,target,pending}});
  const pending=preview.reduce((n,s)=>n+s.pending.length,0);
  const save=async()=>{if(!templateId||!initiativeId)return;setBusy(true);setError('');try{await api('project_strategy_v12','POST',{projectId:project.id,templateId:Number(templateId),initiativeId:Number(initiativeId)});await load();toast('Iniciativa y metodología vinculadas al proyecto')}catch(e){setError(String(e))}finally{setBusy(false)}};
  const generate=()=>{if(!assignment||String(assignment.template_id)!==templateId){setError('Primero guarda la vinculación');return}if(projectStages.length!==6||preview.some(p=>!p.target)){setError('Este proyecto requiere seis etapas. Usa primero la migración metodológica existente.');return}if(!window.confirm('Se agregarán '+pending+' actividades nuevas sin modificar actividades, tareas ni evidencias existentes. ¿Continuar?'))return;
