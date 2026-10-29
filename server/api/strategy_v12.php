@@ -10,7 +10,22 @@ if($action==='methodologies_v12'){
  }
  if($method!=='POST')reply(405,['error'=>'Método no permitido']);
  csrf();if(level($role)<3)reply(403,['error'=>'Permiso insuficiente']);
- $d=input();$name=trim((string)($d['name']??''));$code=strtoupper(trim((string)($d['code']??'')));
+ $d=input();
+ if(($d['operation']??'')==='publish'){
+  $id=(int)($d['templateId']??0);$note=trim((string)($d['approvalNote']??''));
+  if($id<1||mb_strlen($note)<5||mb_strlen($note)>1000)reply(400,['error'=>'Indica la versión y justificación de aprobación']);
+  $q=$db->prepare("SELECT status FROM po_methodology_templates_v12 WHERE id=?");$q->execute([$id]);$status=$q->fetchColumn();
+  if($status===false)reply(404,['error'=>'Metodología no encontrada']);
+  if($status!=='Borrador')reply(409,['error'=>'Solo se pueden publicar borradores']);
+  $q=$db->prepare('SELECT COUNT(*) FROM po_methodology_stages_v12 WHERE template_id=?');$q->execute([$id]);if((int)$q->fetchColumn()!==6)reply(409,['error'=>'Se requieren seis etapas']);
+  $db->beginTransaction();
+  try{
+   $db->prepare("UPDATE po_methodology_templates_v12 SET status='Publicada' WHERE id=? AND status='Borrador'")->execute([$id]);
+   logAction($db,$uid,'publish: '.substr($note,0,100),'methodology_v12',(string)$id);
+   $db->commit();reply(200,['ok'=>true]);
+  }catch(Throwable $e){if($db->inTransaction())$db->rollBack();reply(500,['error'=>'No fue posible publicar']);}
+ }
+ $name=trim((string)($d['name']??''));$code=strtoupper(trim((string)($d['code']??'')));
  $stages=$d['stages']??[];$status=(string)($d['status']??'Borrador');
  if(!preg_match('/^[A-Z0-9_-]{2,32}$/',$code)||$name===''||mb_strlen($name)>190||!in_array($status,['Borrador','Publicada'],true)||!is_array($stages)||count($stages)!==6)reply(400,['error'=>'Metodología inválida: requiere exactamente seis etapas']);
  $weight=0;
