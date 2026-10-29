@@ -44,11 +44,11 @@ jobs:
         run: |
           test "$CONFIRMACION" = "PUBLICAR" || { echo "::error::Para producción escribe PUBLICAR en confirmación"; exit 1; }
           test "$GITHUB_REF" = "refs/heads/main" || { echo "::error::Producción solo se publica desde la rama main"; exit 1; }
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v5
         with:
           version: 11.25.0
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: '22'
           cache: pnpm
@@ -59,7 +59,7 @@ jobs:
         run: echo "release_id=r${GITHUB_RUN_NUMBER}-${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
       - name: Armar y verificar paquete
         run: bash deploy/build-package.sh "${{ steps.id.outputs.release_id }}" "$DESTINO"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         with:
           name: paquete-${{ steps.id.outputs.release_id }}
           path: |
@@ -79,8 +79,8 @@ jobs:
       EXPECTED_DB: ${{ vars.PROCESSONE_DB_NAME }}
       SITE_URL: ${{ vars.PROCESSONE_SITE_URL }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v4
+      - uses: actions/checkout@v5
+      - uses: actions/download-artifact@v7
         with:
           name: paquete-${{ needs.empaquetar.outputs.release_id }}
           path: release
