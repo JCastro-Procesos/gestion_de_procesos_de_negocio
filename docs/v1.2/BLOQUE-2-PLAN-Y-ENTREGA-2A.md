@@ -30,3 +30,17 @@
 
 ## Compatibilidad
 No hay ALTER/DROP de tablas actuales, ni escritura a `po_initiatives` o `po_initiative_projects` desde el nuevo endpoint. No confundir este script con el SQL exploratorio de Bloque 1, que contiene otras tablas no aprobadas.
+
+## Actualización: integración 2B + 2C en el mismo PR
+- `server/api/strategy_v12.php`: metodologías versionadas y KPIs con mediciones, protegidos por sesión y CSRF para escritura.
+- `src/features/initiatives/StrategyManagementPanel.tsx`: seis etapas y ponderación total 100%; registro de indicadores y mediciones con evidencia HTTPS.
+- `database/migrations/v1_2_block2bc_staging.sql`: cinco tablas aditivas para metodología, etapas, actividades, KPIs y mediciones.
+- Empaquetado, instalador, validación PHP y smoke test ampliados para el nuevo módulo.
+- **No desplegado.** Ambas migraciones 2A y 2BC requieren revisión, respaldo y ejecución manual exclusivamente en la base de pruebas antes del primer despliegue.
+
+### Limitaciones explícitas de esta iteración
+- Las metodologías nuevas se guardan como borradores versionados, sin asignación automática a proyectos ni publicación/aprobación desde UI.
+- Las actividades de plantilla no crean ni alteran tareas existentes de proyectos.
+- Los KPIs muestran cumplimiento por última medición, sin agregación ponderada entre iniciativas ni aprobaciones.
+- La jerarquía actual soporta corporativa → departamental; objetivos de área como entidad independiente siguen pendientes.
+- La validación de la compilación, pruebas de regresión y staging no está confirmada.
