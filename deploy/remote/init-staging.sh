@@ -58,7 +58,7 @@ php -d display_errors=stderr -r '
   }' "$STG_CFG" "$PO_DB_NAME" \
   "$SCHEMA_DIR/processone_mysql.sql" "$SCHEMA_DIR/processone_live_patch.sql" \
   "$SCHEMA_DIR/20261023_governance_mysql.sql" "$SCHEMA_DIR/20261023_user_invites.sql" \
-  "$SCHEMA_DIR/20261028_temp_password.sql" || die "No se pudo preparar el esquema de pruebas"
+  "$SCHEMA_DIR/20261028_temp_password.sql" "$SCHEMA_DIR/20261029_presencia_usuarios.sql" || die "No se pudo preparar el esquema de pruebas"
 log "3/5 Esquema aplicado en $PO_DB_NAME (sin datos reales)."
 
 # 4) Administrador de pruebas por invitación (sin contraseña conocida por nadie hasta que la defina el usuario).
