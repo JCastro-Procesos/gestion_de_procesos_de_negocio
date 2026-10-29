@@ -5,6 +5,7 @@
 # Idempotente: si ya existe la configuración no se sobrescribe; el esquema usa CREATE TABLE IF NOT EXISTS.
 : "${PO_DB_NAME:?}" "${PO_DB_USER:?}" "${PO_DB_PASSWORD:?}" "${PO_ADMIN_EMAIL:?}" "${PO_SITE_URL:?}"
 PO_MAIL_FROM="${PO_MAIL_FROM:-}"
+PO_SMTP_USER="${PO_SMTP_USER:-}"; PO_SMTP_PASS="${PO_SMTP_PASS:-}"; PO_SMTP_HOST="${PO_SMTP_HOST:-smtp.hostinger.com}"; PO_SMTP_PORT="${PO_SMTP_PORT:-465}"
 
 STG_DIR="$HOME/domains/viajescasal.com/public_html/procesos-pruebas"
 STG_PRIV="$HOME/processone-pruebas-private"
@@ -27,13 +28,14 @@ mkdir -p "$STG_PRIV"; chmod 700 "$STG_PRIV"
 if [ -f "$STG_CFG" ] && [ "$(po_db_name "$STG_CFG")" != "$PO_DB_NAME" ]; then
   die "La configuración de pruebas existente apunta a otra base: revisar manualmente"
 fi
-PO_DB_PASSWORD="$PO_DB_PASSWORD" php -r '
+PO_DB_PASSWORD="$PO_DB_PASSWORD" PO_SMTP_PASS="$PO_SMTP_PASS" php -r '
   $c=["host"=>"localhost","database"=>$argv[1],"username"=>$argv[2],"password"=>getenv("PO_DB_PASSWORD"),
-      "rate_secret"=>bin2hex(random_bytes(32)),"public_url"=>$argv[3],"mail_from"=>$argv[4],"environment"=>"pruebas"];
-  echo "<?php\nreturn ".var_export($c,true).";\n";' "$PO_DB_NAME" "$PO_DB_USER" "$PO_SITE_URL" "$PO_MAIL_FROM" > "$STG_CFG.tmp"
+      "rate_secret"=>bin2hex(random_bytes(32)),"public_url"=>$argv[3],"mail_from"=>$argv[4],"mail_from_name"=>"ProcessOne (pruebas)",
+      "smtp_host"=>$argv[5],"smtp_port"=>(int)$argv[6],"smtp_user"=>$argv[7],"smtp_pass"=>getenv("PO_SMTP_PASS"),"environment"=>"pruebas"];
+  echo "<?php\nreturn ".var_export($c,true).";\n";' "$PO_DB_NAME" "$PO_DB_USER" "$PO_SITE_URL" "$PO_MAIL_FROM" "$PO_SMTP_HOST" "$PO_SMTP_PORT" "$PO_SMTP_USER" > "$STG_CFG.tmp"
 chmod 600 "$STG_CFG.tmp"; mv -f "$STG_CFG.tmp" "$STG_CFG"
 log "2/5 Configuración de pruebas escrita en $STG_CFG (permisos 600)."
-unset PO_DB_PASSWORD
+unset PO_DB_PASSWORD PO_SMTP_PASS
 
 # 3) Conexión y esquema (solo en la base de pruebas).
 [ -d "$SCHEMA_DIR" ] || die "No se recibieron los archivos de esquema"
@@ -55,7 +57,8 @@ php -d display_errors=stderr -r '
     echo "   aplicado: ".basename($f)."\n";
   }' "$STG_CFG" "$PO_DB_NAME" \
   "$SCHEMA_DIR/processone_mysql.sql" "$SCHEMA_DIR/processone_live_patch.sql" \
-  "$SCHEMA_DIR/20261023_governance_mysql.sql" "$SCHEMA_DIR/20261023_user_invites.sql" || die "No se pudo preparar el esquema de pruebas"
+  "$SCHEMA_DIR/20261023_governance_mysql.sql" "$SCHEMA_DIR/20261023_user_invites.sql" \
+  "$SCHEMA_DIR/20261028_temp_password.sql" || die "No se pudo preparar el esquema de pruebas"
 log "3/5 Esquema aplicado en $PO_DB_NAME (sin datos reales)."
 
 # 4) Administrador de pruebas por invitación (sin contraseña conocida por nadie hasta que la defina el usuario).
