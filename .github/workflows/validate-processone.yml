@@ -39,6 +39,7 @@ jobs:
         run: |
           php -l server/api/index.php
           php -l server/api/cells_v12.php
+          php -l server/api/initiative_details_v12.php
           php -l server/api/setup.php
       - name: Validar scripts de despliegue
         run: |
