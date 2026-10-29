@@ -83,5 +83,6 @@ for cfg in "$HOME/processone-pruebas-private/config.php" "$HOME/processone-priva
 done
 log "Últimos errores de correo registrados por la API (sin datos sensibles):"
 find "$HOME/domains" "$HOME/logs" -maxdepth 6 -type f -name 'error_log*' 2>/dev/null | while IFS= read -r f; do
-  grep -h 'ProcessOne correo' "$f" 2>/dev/null | tail -n 5 | sed -E 's/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+/***@***/g' | sed "s#^#   [$(basename "$(dirname "$f")")] #"
-done
+  { grep -h 'ProcessOne correo' "$f" 2>/dev/null || true; } | tail -n 5 | sed -E 's/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+/***@***/g' | sed "s#^#   [$(basename "$(dirname "$f")")] #"
+done || true
+log "Fin de la revisión de correo."
