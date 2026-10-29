@@ -31,6 +31,8 @@ if find "$REL" \( -iname 'setup.php' -o -iname 'config.php' -o -iname '.env*' -o
 fi
 grep -q 'ProcessOne' "$REL/index.html" || die "Paquete sin index.html de ProcessOne"
 php -l "$REL/api/index.php" >/dev/null || die "Error de sintaxis PHP en el servidor"
+[ -s "$REL/api/cells_v12.php" ] || die "Falta cells_v12.php en el paquete"
+php -l "$REL/api/cells_v12.php" >/dev/null || die "Error de sintaxis PHP en cells_v12.php"
 CFG="$(po_config_path "$PO_TARGET" "$REL/api/index.php")"
 [ -n "$CFG" ] && [ -f "$CFG" ] || die "La nueva API apunta a una configuración inexistente: $CFG"
 case "$CFG" in "$HOME"/domains/*) die "La configuración no debe estar dentro de domains";; esac
@@ -66,13 +68,15 @@ mkdir -p "$PO_TARGET/assets" "$PO_TARGET/api"
 [ -d "$REL/assets" ] && copy "$REL/assets/." "$PO_TARGET/assets/"
 for f in "$REL"/*.svg "$REL"/manus-routes.json "$REL"/robots.txt; do if [ -f "$f" ]; then copy "$f" "$PO_TARGET/"; fi; done
 copy "$REL/api/index.php" "$PO_TARGET/api/index.php"
+copy "$REL/api/cells_v12.php" "$PO_TARGET/api/cells_v12.php"
+[ -s "$PO_TARGET/api/cells_v12.php" ] || die "No se publicó cells_v12.php"
 copy "$REL/.htaccess" "$PO_TARGET/.htaccess"
 copy "$REL/version.json" "$PO_TARGET/version.json"
 copy "$REL/index.html" "$PO_TARGET/index.html"
 # No modificar permisos de archivos ajenos a esta publicación.
 chmod 755 "$PO_TARGET/assets" "$PO_TARGET/api"
 [ ! -d "$REL/assets" ] || ( cd "$REL/assets" && find . -type f -print0 | while IFS= read -r -d "" f; do chmod 644 "$PO_TARGET/assets/$f"; done )
-chmod 644 "$PO_TARGET/api/index.php" "$PO_TARGET/.htaccess" "$PO_TARGET/version.json" "$PO_TARGET/index.html"
+chmod 644 "$PO_TARGET/api/index.php" "$PO_TARGET/api/cells_v12.php" "$PO_TARGET/.htaccess" "$PO_TARGET/version.json" "$PO_TARGET/index.html"
 for f in "$REL"/*.svg "$REL"/manus-routes.json "$REL"/robots.txt; do
   [ ! -f "$f" ] || chmod 644 "$PO_TARGET/$(basename "$f")"
 done
