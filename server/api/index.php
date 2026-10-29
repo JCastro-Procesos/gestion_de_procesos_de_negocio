@@ -28,10 +28,12 @@ session_start();
 function reply(int $status,array $data):never { http_response_code($status); echo json_encode($data,JSON_UNESCAPED_UNICODE|JSON_INVALID_UTF8_SUBSTITUTE); exit; }
 function input():array { $raw=file_get_contents('php://input'); if(strlen($raw)>2000000)reply(413,['error'=>'Solicitud demasiado grande']); $x=json_decode($raw,true); if(!is_array($x))reply(400,['error'=>'JSON inválido']); return $x; }
 function csrf():void { if(!hash_equals($_SESSION['csrf']??'',$_SERVER['HTTP_X_CSRF_TOKEN']??''))reply(403,['error'=>'Sesión inválida']); }
-function member(PDO $db):array {
+function member(PDO $db,bool $allowPending=false):array {
  if(empty($_SESSION['uid']))reply(401,['error'=>'Inicia sesión']);
- $q=$db->prepare('SELECT id,name,email,role,active,avatar_animal FROM po_users WHERE id=? LIMIT 1');$q->execute([$_SESSION['uid']]);$u=$q->fetch();
+ $q=$db->prepare('SELECT id,name,email,role,active,avatar_animal,must_change_password FROM po_users WHERE id=? LIMIT 1');$q->execute([$_SESSION['uid']]);$u=$q->fetch();
  if(!$u || !$u['active']) { session_destroy(); reply(401,['error'=>'Acceso deshabilitado']); }
+ $u['mustChangePassword']=(bool)$u['must_change_password'];unset($u['must_change_password']);
+ if($u['mustChangePassword'] && !$allowPending)reply(403,['error'=>'Debes cambiar tu contraseña temporal antes de continuar','code'=>'must_change_password']);
  return $u;
 }
 function level(string $role):int { return ['ingeniero'=>1,'especialista'=>2,'gerencia'=>3,'direccion'=>4,'admin'=>5][$role]??0; }
@@ -45,15 +47,52 @@ function authToken(PDO $db,int $userId,string $purpose,int $hours):string {
  $db->prepare('INSERT INTO po_auth_tokens(user_id,purpose,token_hash,expires_at) VALUES (?,?,?,DATE_ADD(NOW(),INTERVAL ? HOUR))')->execute([$userId,$purpose,hash('sha256',$token),$hours]);
  return $token;
 }
-function sendAuthEmail(array $settings,string $email,string $subject,string $url):bool {
- $from=$settings['mail_from']??'';
- if(!filter_var($from,FILTER_VALIDATE_EMAIL))return false;
- $body="ProcessOne\n\n".$subject."\n\nAbre el siguiente enlace para continuar:\n".$url."\n\nSi no solicitaste esta acción, ignora este mensaje.";
- return mail($email,$subject,$body,'From: '.$from."\r\nContent-Type: text/plain; charset=UTF-8");
+// ---------- Correo (SMTP Hostinger con respaldo a mail()) ----------
+function smtpCmd($fp,?string $cmd,array $ok):string {
+ if($cmd!==null)fwrite($fp,$cmd."\r\n");
+ $resp='';while(($line=fgets($fp,515))!==false){$resp.=$line;if(strlen($line)<4||$line[3]===' ')break;}
+ if(!in_array((int)substr($resp,0,3),$ok,true))throw new RuntimeException('SMTP '.($resp===''?'sin respuesta (credenciales o conexión)':trim(substr($resp,0,120))));
+ return $resp;
 }
-function authLink(array $settings,string $token,string $purpose):string {
- $base=rtrim((string)($settings['public_url']??'https://procesos.viajescasal.com'),'/');
- return $base.'/?auth='.$purpose.'&token='.rawurlencode($token);
+function smtpSend(array $s,string $to,string $subject,string $body):bool {
+ $host=(string)($s['smtp_host']??'');$port=(int)($s['smtp_port']??465);$user=(string)($s['smtp_user']??'');$pass=(string)($s['smtp_pass']??'');
+ $from=filter_var($s['mail_from']??'',FILTER_VALIDATE_EMAIL)?(string)$s['mail_from']:$user;$fromName=(string)($s['mail_from_name']??'ProcessOne');
+ $fp=@stream_socket_client(($port===465?'ssl://':'tcp://').$host.':'.$port,$errno,$errstr,15,STREAM_CLIENT_CONNECT,stream_context_create(['ssl'=>['verify_peer'=>true,'verify_peer_name'=>true]]));
+ if(!$fp)throw new RuntimeException('Conexión SMTP: '.$errstr);
+ stream_set_timeout($fp,15);
+ try{
+  smtpCmd($fp,null,[220]);$ehlo='EHLO '.(parse_url((string)($s['public_url']??''),PHP_URL_HOST)?:'localhost');smtpCmd($fp,$ehlo,[250]);
+  if($port!==465){smtpCmd($fp,'STARTTLS',[220]);if(!stream_socket_enable_crypto($fp,true,STREAM_CRYPTO_METHOD_TLS_CLIENT))throw new RuntimeException('STARTTLS falló');smtpCmd($fp,$ehlo,[250]);}
+  smtpCmd($fp,'AUTH LOGIN',[334]);smtpCmd($fp,base64_encode($user),[334]);smtpCmd($fp,base64_encode($pass),[235]);
+  smtpCmd($fp,'MAIL FROM:<'.$from.'>',[250]);smtpCmd($fp,'RCPT TO:<'.$to.'>',[250,251]);smtpCmd($fp,'DATA',[354]);
+  $headers=['Date: '.date('r'),'From: =?UTF-8?B?'.base64_encode($fromName).'?= <'.$from.'>','To: <'.$to.'>','Subject: =?UTF-8?B?'.base64_encode($subject).'?=',
+   'Message-ID: <'.bin2hex(random_bytes(12)).'@'.(explode('@',$from)[1]??'localhost').'>','MIME-Version: 1.0','Content-Type: text/plain; charset=UTF-8','Content-Transfer-Encoding: base64'];
+  smtpCmd($fp,implode("\r\n",$headers)."\r\n\r\n".chunk_split(base64_encode($body))."\r\n.",[250]);
+  smtpCmd($fp,'QUIT',[221]);return true;
+ }finally{fclose($fp);}
+}
+function sendMail(array $s,string $to,string $subject,string $body):bool {
+ try{
+  if(!empty($s['smtp_host'])&&!empty($s['smtp_user'])&&!empty($s['smtp_pass']))return smtpSend($s,$to,$subject,$body);
+  $from=$s['mail_from']??'';if(!filter_var($from,FILTER_VALIDATE_EMAIL)){error_log('ProcessOne correo: falta smtp_* o mail_from en config.php');return false;}
+  return mail($to,'=?UTF-8?B?'.base64_encode($subject).'?=',$body,'From: '.$from."\r\nMIME-Version: 1.0\r\nContent-Type: text/plain; charset=UTF-8");
+ }catch(Throwable $e){error_log('ProcessOne correo: '.$e->getMessage());return false;}
+}
+function baseUrl(array $s):string { return rtrim((string)($s['public_url']??'https://procesos.viajescasal.com'),'/'); }
+function authLink(array $settings,string $token,string $purpose):string { return baseUrl($settings).'/?auth='.$purpose.'&token='.rawurlencode($token); }
+function tempPassword():string { $a='ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789';$p='';for($i=0;$i<14;$i++)$p.=$a[random_int(0,strlen($a)-1)];return substr($p,0,7).'-'.substr($p,7); }
+const TEMP_HOURS=48;
+function inviteReply(array $r,string $email,string $okMsg):array {
+ // Si el correo falla, se muestra la contraseña temporal SOLO al administrador para que la comparta por un canal seguro.
+ return $r['sent']?['ok'=>true,'sent'=>true,'message'=>$okMsg]:['ok'=>true,'sent'=>false,'tempPassword'=>$r['temp'],'message'=>'No se pudo enviar el correo a '.$email.'. Comparte la contraseña temporal por un canal seguro (vence en '.TEMP_HOURS.' h) y revisa la configuración SMTP.'];
+}
+// Asigna contraseña temporal (vence en 48 h, obliga a cambiarla) y envía la invitación.
+function issueInvite(PDO $db,array $settings,int $id,string $name,string $email):array {
+ $temp=tempPassword();
+ $db->prepare('UPDATE po_users SET password_hash=?,invitation_pending=1,must_change_password=1,temp_password_expires_at=DATE_ADD(NOW(),INTERVAL ? HOUR) WHERE id=?')->execute([password_hash($temp,PASSWORD_DEFAULT),TEMP_HOURS,$id]);
+ $url=baseUrl($settings).'/?acceso='.rawurlencode($email);
+ $body="Hola $name,\n\nTe dieron acceso a ProcessOne.\n\n1. Entra aquí: $url\n2. Correo: $email\n3. Contraseña temporal: $temp\n\nLa contraseña temporal vence en ".TEMP_HOURS." horas. Al entrar, el sistema te pedirá crear tu propia contraseña (mínimo 12 caracteres).\n\nSi no esperabas este correo, ignóralo.\n\nProcessOne";
+ return ['sent'=>sendMail($settings,$email,'Tu acceso a ProcessOne',$body),'temp'=>$temp];
 }
 $action=$_GET['action']??'';
 $method=$_SERVER['REQUEST_METHOD']??'GET';
@@ -72,7 +111,7 @@ if($action==='token_consume' && $method==='POST'){
   $q=$db->prepare('SELECT t.id,t.user_id FROM po_auth_tokens t JOIN po_users u ON u.id=t.user_id WHERE t.token_hash=? AND t.purpose=? AND t.consumed_at IS NULL AND t.expires_at>NOW() AND u.active=1 LIMIT 1 FOR UPDATE');
   $q->execute([hash('sha256',$token),$purpose]);$row=$q->fetch();
   if(!$row){$db->rollBack();reply(400,['error'=>'El enlace expiró o ya fue utilizado']);}
-  $db->prepare('UPDATE po_users SET password_hash=?,invitation_pending=0 WHERE id=?')->execute([password_hash($password,PASSWORD_DEFAULT),$row['user_id']]);
+  $db->prepare('UPDATE po_users SET password_hash=?,invitation_pending=0,must_change_password=0,temp_password_expires_at=NULL WHERE id=?')->execute([password_hash($password,PASSWORD_DEFAULT),$row['user_id']]);
   $db->prepare('UPDATE po_auth_tokens SET consumed_at=NOW() WHERE user_id=? AND consumed_at IS NULL')->execute([$row['user_id']]);
   logAction($db,(int)$row['user_id'],'set_password','user',(string)$row['user_id']);$db->commit();reply(200,['ok'=>true]);
  }catch(Throwable $e){if($db->inTransaction())$db->rollBack();reply(500,['error'=>'No fue posible actualizar la contraseña']);}
@@ -84,7 +123,8 @@ if($action==='password_forgot' && $method==='POST'){
   $q=$db->prepare('SELECT id FROM po_users WHERE email=? AND active=1 AND invitation_pending=0');$q->execute([$email]);$id=$q->fetchColumn();
   if($id){
    $recent=$db->prepare("SELECT COUNT(*) FROM po_auth_tokens WHERE user_id=? AND purpose='reset' AND created_at>DATE_SUB(NOW(),INTERVAL 15 MINUTE)");$recent->execute([$id]);
-   if((int)$recent->fetchColumn()<1){$token=authToken($db,(int)$id,'reset',1);sendAuthEmail($settings,$email,'Restablecer contraseña ProcessOne',authLink($settings,$token,'reset'));}
+   if((int)$recent->fetchColumn()<1){$token=authToken($db,(int)$id,'reset',1);
+    sendMail($settings,$email,'Restablecer contraseña ProcessOne',"Recibimos una solicitud para restablecer tu contraseña de ProcessOne.\n\nAbre este enlace (válido 1 hora) y crea una nueva contraseña:\n".authLink($settings,$token,'reset')."\n\nSi no lo solicitaste, ignora este mensaje; tu contraseña actual sigue funcionando.\n\nProcessOne");}
   }
  }
  reply(200,['ok'=>true,'message'=>'Si existe una cuenta activa, recibirás instrucciones por correo.']);
@@ -92,15 +132,29 @@ if($action==='password_forgot' && $method==='POST'){
 if($action==='login' && $method==='POST'){
  $d=input();$email=strtolower(trim((string)($d['email']??'')));$password=(string)($d['password']??'');
  $limit=$db->prepare('SELECT COUNT(*) FROM po_login_attempts WHERE ip_hash=? AND attempted_at > DATE_SUB(NOW(), INTERVAL 15 MINUTE)');$ipHash=hash('sha256',($_SERVER['REMOTE_ADDR']??'unknown').($settings['rate_secret']??''));$limit->execute([$ipHash]);if((int)$limit->fetchColumn()>=10)reply(429,['error'=>'Demasiados intentos. Intenta más tarde.']);
- $q=$db->prepare('SELECT id,name,email,password_hash,role,active,invitation_pending FROM po_users WHERE email=? LIMIT 1');$q->execute([$email]);$u=$q->fetch();
- if(!$u || !$u['active'] || !empty($u['invitation_pending']) || !password_verify($password,$u['password_hash'])){$fail=$db->prepare('INSERT INTO po_login_attempts(ip_hash) VALUES (?)');$fail->execute([$ipHash]);usleep(300000);reply(401,['error'=>'Credenciales inválidas']);}
- session_regenerate_id(true);$_SESSION['uid']=(int)$u['id'];$_SESSION['csrf']=bin2hex(random_bytes(32));unset($u['password_hash'],$u['invitation_pending']);
+ $q=$db->prepare('SELECT id,name,email,password_hash,role,active,invitation_pending,must_change_password,(temp_password_expires_at IS NOT NULL AND temp_password_expires_at<NOW()) temp_expired FROM po_users WHERE email=? LIMIT 1');$q->execute([$email]);$u=$q->fetch();
+ $pendingOk=$u && (!empty($u['must_change_password']) && empty($u['temp_expired']));
+ if($u && $u['active'] && !empty($u['must_change_password']) && !empty($u['temp_expired']) && password_verify($password,$u['password_hash']))reply(401,['error'=>'Tu contraseña temporal venció. Pide al administrador que reenvíe la invitación.']);
+ if(!$u || !$u['active'] || (!empty($u['invitation_pending']) && !$pendingOk) || !password_verify($password,$u['password_hash'])){$fail=$db->prepare('INSERT INTO po_login_attempts(ip_hash) VALUES (?)');$fail->execute([$ipHash]);usleep(300000);reply(401,['error'=>'Credenciales inválidas']);}
+ session_regenerate_id(true);$_SESSION['uid']=(int)$u['id'];$_SESSION['csrf']=bin2hex(random_bytes(32));$u['mustChangePassword']=(bool)$u['must_change_password'];unset($u['password_hash'],$u['invitation_pending'],$u['must_change_password'],$u['temp_expired']);
+ $db->prepare('UPDATE po_users SET last_login_at=NOW() WHERE id=?')->execute([$u['id']]);
  logAction($db,(int)$u['id'],'login','user',(string)$u['id']);reply(200,['user'=>$u,'csrf'=>$_SESSION['csrf']]);
 }
 if($action==='session' && $method==='GET'){
- $u=member($db);$_SESSION['csrf']??=bin2hex(random_bytes(32));reply(200,['user'=>$u,'csrf'=>$_SESSION['csrf']]);
+ $u=member($db,true);$_SESSION['csrf']??=bin2hex(random_bytes(32));reply(200,['user'=>$u,'csrf'=>$_SESSION['csrf']]);
 }
 if($action==='logout' && $method==='POST'){csrf();session_destroy();reply(200,['ok'=>true]);}
+if($action==='password_change' && $method==='POST'){
+ csrf();$me=member($db,true);$d=input();$old=(string)($d['oldPassword']??'');$new=(string)($d['newPassword']??'');
+ if(strlen($new)<12||strlen($new)>256)reply(400,['error'=>'La contraseña debe tener al menos 12 caracteres']);
+ if(hash_equals($old,$new))reply(400,['error'=>'La nueva contraseña debe ser distinta a la actual']);
+ $q=$db->prepare('SELECT password_hash FROM po_users WHERE id=?');$q->execute([$me['id']]);
+ if(!password_verify($old,(string)$q->fetchColumn()))reply(403,['error'=>'Contraseña actual incorrecta']);
+ $db->prepare('UPDATE po_users SET password_hash=?,invitation_pending=0,must_change_password=0,temp_password_expires_at=NULL WHERE id=?')->execute([password_hash($new,PASSWORD_DEFAULT),$me['id']]);
+ $db->prepare('UPDATE po_auth_tokens SET consumed_at=NOW() WHERE user_id=? AND consumed_at IS NULL')->execute([$me['id']]);
+ session_regenerate_id(true);
+ logAction($db,(int)$me['id'],'change_password','user',(string)$me['id']);reply(200,['ok'=>true,'user'=>member($db)]);
+}
 $u=member($db);$uid=(int)$u['id'];$role=$u['role'];
 if($action==='profile' && $method==='PUT'){
  csrf();$d=input();$name=trim((string)($d['name']??''));$avatar=(string)($d['avatar_animal']??'');
@@ -150,12 +204,12 @@ if($action==='users' && $method==='POST'){
  if(mb_strlen($name)<2||mb_strlen($name)>120||!filter_var($email,FILTER_VALIDATE_EMAIL)||!in_array($newRole,['direccion','gerencia','especialista','ingeniero'],true))reply(400,['error'=>'Nombre, correo o perfil inválido']);
  $db->beginTransaction();
  try{
-  $q=$db->prepare('INSERT INTO po_users(name,email,password_hash,role,invitation_pending) VALUES (?,?,?,?,1)');
+  $q=$db->prepare('INSERT INTO po_users(name,email,password_hash,role,invitation_pending,must_change_password) VALUES (?,?,?,?,1,1)');
   $q->execute([$name,$email,password_hash(bin2hex(random_bytes(32)),PASSWORD_DEFAULT),$newRole]);$id=(int)$db->lastInsertId();
-  $token=authToken($db,$id,'invite',48);logAction($db,$uid,'invite','user',(string)$id);$db->commit();
- }catch(Throwable $e){if($db->inTransaction())$db->rollBack();reply(409,['error'=>'No se pudo registrar: verifica que el correo no exista']);}
- $sent=sendAuthEmail($settings,$email,'Invitación a ProcessOne',authLink($settings,$token,'invite'));
- reply(201,['ok'=>true,'sent'=>$sent,'message'=>$sent?'Invitación enviada':'Cuenta pendiente de activación. No se pudo enviar el correo; revisa la configuración del servidor.']);
+  logAction($db,$uid,'invite','user',(string)$id);$db->commit();
+ }catch(PDOException $e){if($db->inTransaction())$db->rollBack();reply(409,['error'=>($e->errorInfo[1]??0)==1062?'Ese correo ya está registrado':'No se pudo registrar el usuario']);}
+ $r=issueInvite($db,$settings,$id,$name,$email);
+ reply(201,inviteReply($r,$email,'Invitación enviada a '.$email));
 }
 if($action==='users' && $method==='PUT'){
  csrf();if($role!=='admin')reply(403,['error'=>'Acceso restringido']);
@@ -169,19 +223,11 @@ if($action==='users' && $method==='PUT'){
 }
 if($action==='users_resend' && $method==='POST'){
  csrf();if($role!=='admin')reply(403,['error'=>'Acceso restringido']);
- $d=input();$id=(int)($d['id']??0);$q=$db->prepare('SELECT email FROM po_users WHERE id=? AND active=1 AND invitation_pending=1');$q->execute([$id]);$email=$q->fetchColumn();
- if(!$email)reply(404,['error'=>'No hay invitación pendiente']);
- $token=authToken($db,$id,'invite',48);
- $sent=sendAuthEmail($settings,$email,'Invitación a ProcessOne',authLink($settings,$token,'invite'));
- reply(200,['sent'=>$sent,'message'=>$sent?'Invitación reenviada':'No se pudo enviar el correo']);
-}
-if($action==='password_change' && $method==='POST'){
- csrf();$d=input();$old=(string)($d['oldPassword']??'');$new=(string)($d['newPassword']??'');
- if(strlen($new)<12||strlen($new)>256)reply(400,['error'=>'La contraseña debe tener al menos 12 caracteres']);
- $q=$db->prepare('SELECT password_hash FROM po_users WHERE id=?');$q->execute([$uid]);
- if(!password_verify($old,(string)$q->fetchColumn()))reply(403,['error'=>'Contraseña actual incorrecta']);
- $db->prepare('UPDATE po_users SET password_hash=? WHERE id=?')->execute([password_hash($new,PASSWORD_DEFAULT),$uid]);
- logAction($db,$uid,'change_password','user',(string)$uid);reply(200,['ok'=>true]);
+ $d=input();$id=(int)($d['id']??0);$q=$db->prepare("SELECT name,email FROM po_users WHERE id=? AND active=1 AND role<>'admin'");$q->execute([$id]);$t=$q->fetch();
+ if(!$t)reply(404,['error'=>'Usuario no encontrado o inactivo']);
+ // Sirve para reenviar invitaciones y también para que el admin restablezca el acceso de alguien.
+ $r=issueInvite($db,$settings,$id,$t['name'],$t['email']);logAction($db,$uid,'resend_invite','user',(string)$id);
+ reply(200,inviteReply($r,$t['email'],'Acceso reenviado a '.$t['email']));
 }
 if($action==='initiatives' && $method==='GET'){
  $rows=$db->query('SELECT i.id,i.title,i.objective,i.status,i.owner_id,i.created_at, GROUP_CONCAT(l.project_id SEPARATOR ",") project_ids FROM po_initiatives i LEFT JOIN po_initiative_projects l ON l.initiative_id=i.id GROUP BY i.id ORDER BY i.created_at DESC')->fetchAll();
