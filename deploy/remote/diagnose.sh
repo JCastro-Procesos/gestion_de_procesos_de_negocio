@@ -58,3 +58,30 @@ fi
 log "Respaldos existentes: $(ls -1 "$PO_BACKUPS" 2>/dev/null | wc -l)"
 log "Espacio usado en HOME: $(du -sh "$HOME" 2>/dev/null | cut -f1)"
 log "Diagnóstico terminado (sin cambios)."
+
+# Correo saliente (solo lectura): prueba conexión y autenticación SMTP sin enviar mensajes.
+for cfg in "$HOME/processone-pruebas-private/config.php" "$HOME/processone-private/config.php"; do
+  [ -f "$cfg" ] || continue
+  log "Correo saliente según $(basename "$(dirname "$cfg")"):"
+  php -r '
+    ob_start(); $c=include $argv[1]; ob_end_clean();
+    $u=(string)($c["smtp_user"]??""); $h=(string)($c["smtp_host"]??""); $p=(int)($c["smtp_port"]??465);
+    echo "   mail_from: ".(($c["mail_from"]??"")!==""?$c["mail_from"]:"(vacío)")." · smtp_host: ".($h?:"(vacío)")." · puerto: $p · smtp_user: ".($u?:"(vacío)")." · smtp_pass: ".(empty($c["smtp_pass"])?"(vacío)":"configurada")."\n";
+    if(!$h||!$u||empty($c["smtp_pass"])){echo "   SMTP incompleto: la API usará mail() o no enviará.\n";exit;}
+    $fp=@stream_socket_client(($p===465?"ssl://":"tcp://")."$h:$p",$en,$es,15);
+    if(!$fp){echo "   CONEXIÓN FALLIDA: $es ($en)\n";exit;}
+    stream_set_timeout($fp,15);
+    $rd=function()use($fp){$r="";while(($l=fgets($fp,515))!==false){$r.=$l;if(strlen($l)<4||$l[3]===" ")break;}return trim($r);};
+    $cmd=function($x)use($fp,$rd){fwrite($fp,$x."\r\n");return $rd();};
+    echo "   saludo: ".substr($rd(),0,60)."\n";
+    $cmd("EHLO procesos.viajescasal.com");
+    if($p!==465){$cmd("STARTTLS");stream_socket_enable_crypto($fp,true,STREAM_CRYPTO_METHOD_TLS_CLIENT);$cmd("EHLO procesos.viajescasal.com");}
+    $cmd("AUTH LOGIN");$cmd(base64_encode($u));$r=$cmd(base64_encode((string)$c["smtp_pass"]));
+    echo "   autenticación: ".(str_starts_with($r,"235")?"OK":"RECHAZADA (".substr($r,0,80).")")."\n";
+    $cmd("QUIT");fclose($fp);
+  ' "$cfg" 2>&1 | sed 's/^/ /'
+done
+log "Últimos errores de correo registrados por la API (sin datos sensibles):"
+find "$HOME/domains" "$HOME/logs" -maxdepth 6 -type f -name 'error_log*' 2>/dev/null | while IFS= read -r f; do
+  grep -h 'ProcessOne correo' "$f" 2>/dev/null | tail -n 5 | sed -E 's/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+/***@***/g' | sed "s#^#   [$(basename "$(dirname "$f")")] #"
+done
