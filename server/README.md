@@ -21,7 +21,15 @@ return [
   'username' => 'u378754586_processone',
   'password' => 'REEMPLAZAR_LOCALMENTE',
   'rate_secret' => 'CADENA_ALEATORIA_LARGA',
-  'bootstrap_token' => 'OTRA_CADENA_ALEATORIA_DE_32_CARACTERES_O_MAS'
+  'bootstrap_token' => 'OTRA_CADENA_ALEATORIA_DE_32_CARACTERES_O_MAS',
+  // Correo saliente (invitaciones y restablecimiento). Buzón creado en hPanel > Correos.
+  'public_url' => 'https://procesos.viajescasal.com',
+  'mail_from' => 'no-reply@viajescasal.com',
+  'mail_from_name' => 'ProcessOne',
+  'smtp_host' => 'smtp.hostinger.com',
+  'smtp_port' => 465,
+  'smtp_user' => 'no-reply@viajescasal.com',
+  'smtp_pass' => 'CONTRASEÑA_DEL_BUZON'
 ];
 ```
 
@@ -38,6 +46,9 @@ El espacio compartido comienza vacío. Los proyectos que estén en el navegador 
 
 ## Precauciones
 - La edición del workspace es global y usa revisión optimista; si hay cambios simultáneos, el servidor rechaza la segunda escritura (409). Falta un flujo visual para resolver conflictos.
-- Los usuarios se crean desde el panel administrador con contraseña temporal. Falta cambio de contraseña/autoservicio, recuperación de acceso y correo de invitación. No compartir claves temporales por medios inseguros.
+- Invitación: el administrador registra al colaborador; el sistema envía por SMTP un correo con enlace, correo y contraseña temporal (vence en 48 h). En el primer acceso se obliga a crear una contraseña propia (mín. 12 caracteres); hasta entonces la API bloquea todo lo demás.
+- Si el correo falla, la pantalla de Usuarios muestra la contraseña temporal una sola vez al administrador para compartirla por un canal seguro. El detalle del error queda en el error_log de PHP.
+- "Olvidé mi contraseña" envía un enlace de un solo uso (1 h). El administrador también puede usar "Restablecer acceso" para generar una nueva temporal.
+- Requiere aplicar `database/migrations/20261028_temp_password.sql` (solo agrega columnas).
 - El frontend y API aún requieren pruebas reales de compilación, PHP lint, sesiones, privilegios y múltiples usuarios.
 - No fusionar ni publicar en producción antes de completar pruebas y resolver las limitaciones anteriores.
