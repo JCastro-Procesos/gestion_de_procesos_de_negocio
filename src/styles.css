@@ -209,3 +209,10 @@ button:focus-visible,a:focus-visible,[role="button"]:focus-visible{outline:3px s
 .topbar-actions{flex-wrap:wrap;justify-content:flex-end;min-width:0;row-gap:8px}
 @media(max-width:1250px){.topbar-actions label select{max-width:150px}}
 .main-content{padding-bottom:80px}
+.po-readonly-note{background:#f3f6fb;border:1px dashed #c9d5e6;color:#51627f;border-radius:10px;padding:9px 12px;font-size:12px}
+.po-presence{display:inline-flex;align-items:center;gap:6px;font-size:11px;border-radius:999px;padding:3px 9px;font-weight:600}
+.po-presence i{width:8px;height:8px;border-radius:50%;display:inline-block}
+.po-presence.online{background:#e3f6ee;color:#0b7a57}.po-presence.online i{background:#10a77d;box-shadow:0 0 0 3px #10a77d33}
+.po-presence.offline{background:#f1f3f7;color:#66728a}.po-presence.offline i{background:#a5adbd}
+.po-status{font-size:11px;border-radius:999px;padding:3px 9px;font-weight:600}
+.po-status.ok{background:#e7f0ff;color:#2a4d9b}.po-status.pending{background:#fff3df;color:#9a5b00}.po-status.off{background:#fde8ea;color:#a3283a}
