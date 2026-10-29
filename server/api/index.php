@@ -160,6 +160,7 @@ if($action==='password_change' && $method==='POST'){
 $u=member($db);$uid=(int)$u['id'];$role=$u['role'];
 if($action==='cells_v12') require __DIR__.'/cells_v12.php';
 if($action==='initiative_details_v12') require __DIR__.'/initiative_details_v12.php';
+if(in_array($action,['methodologies_v12','initiative_kpis_v12'],true)) require __DIR__.'/strategy_v12.php';
 if($action==='profile' && $method==='PUT'){
  csrf();$d=input();$name=trim((string)($d['name']??''));$avatar=(string)($d['avatar_animal']??'');
  $allowed=['🦊','🐯','🦁','🐼','🐻','🦉','🐬','🦋','🐢','🦄','🐺','🦜',''];
