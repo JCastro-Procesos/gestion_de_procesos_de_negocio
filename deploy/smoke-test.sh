@@ -15,6 +15,7 @@ code="$(get "$URL/")";        [ "$code" = 200 ] && grep -q ProcessOne /tmp/body 
 js="$(grep -oE '/assets/index-[^"]+\.js' /tmp/body | head -n1)"
 if [ -n "$js" ]; then code="$(get "$URL$js")"; [ "$code" = 200 ] && ok "Bundle $js" || ko "Bundle $js: HTTP $code"; else ko "index.html sin bundle"; fi
 code="$(get "$URL/api/index.php")"; [ "$code" = 401 ] && grep -q 'Inicia sesi' /tmp/body && ok "API conectada a MySQL (401 sin sesión)" || ko "API: HTTP $code $(head -c 120 /tmp/body)"
+code="$(get "$URL/api/index.php?action=cells_v12")"; [ "$code" = 401 ] && grep -q "Inicia sesi" /tmp/body && ok "Ruta cells_v12 protegida sin sesión (401)" || ko "Ruta cells_v12: HTTP $code $(head -c 120 /tmp/body)"
 code="$(get "$URL/api/setup.php")"; grep -q 'Activar administrador' /tmp/body && ko "setup.php está expuesto" || ok "setup.php no expuesto"
 code="$(get "$URL/.htaccess")";    { [ "$code" = 403 ] || [ "$code" = 404 ]; } && ok ".htaccess protegido ($code)" || ko ".htaccess accesible ($code)"
 code="$(get "$URL/version.json")"; grep -qiE 'password|bootstrap|secret' /tmp/body && ko "version.json contiene datos sensibles" || ok "Sin secretos expuestos"

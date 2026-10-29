@@ -158,6 +158,7 @@ if($action==='password_change' && $method==='POST'){
  logAction($db,(int)$me['id'],'change_password','user',(string)$me['id']);reply(200,['ok'=>true,'user'=>member($db)]);
 }
 $u=member($db);$uid=(int)$u['id'];$role=$u['role'];
+if($action==='cells_v12') require __DIR__.'/cells_v12.php';
 if($action==='profile' && $method==='PUT'){
  csrf();$d=input();$name=trim((string)($d['name']??''));$avatar=(string)($d['avatar_animal']??'');
  $allowed=['🦊','🐯','🦁','🐼','🐻','🦉','🐬','🦋','🐢','🦄','🐺','🦜',''];
