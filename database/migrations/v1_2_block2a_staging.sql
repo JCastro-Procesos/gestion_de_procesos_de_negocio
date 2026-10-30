@@ -25,7 +25,7 @@ CREATE TABLE IF NOT EXISTS po_initiative_details_v12 (
  CONSTRAINT fk_i2a_sponsor FOREIGN KEY (sponsor_user_id) REFERENCES po_users(id) ON DELETE SET NULL,
  CONSTRAINT fk_i2a_owner FOREIGN KEY (process_owner_user_id) REFERENCES po_users(id) ON DELETE SET NULL,
  CONSTRAINT ck_i2a_dates CHECK (target_date IS NULL OR start_date IS NULL OR target_date >= start_date),
- CONSTRAINT ck_i2a_parent CHECK (parent_initiative_id IS NULL OR parent_initiative_id <> initiative_id),
+ -- Parent hierarchy and self-reference are validated by initiative_details_v12.php.
  INDEX idx_i2a_parent (parent_initiative_id),
  INDEX idx_i2a_cell (cell_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
