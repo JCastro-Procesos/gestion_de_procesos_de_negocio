@@ -24,7 +24,7 @@ export function InitiativeArchitecturePanel({initiatives}:{initiatives:Initiativ
   catch(err){setError(err instanceof Error?err.message:String(err))}finally{setBusy(false)}};
  const corporate=details.filter(d=>d.initiative_level==='Corporativa'&&String(d.initiative_id)!==form.initiativeId);
  return <section className="itm-planning-panel" aria-label="Arquitectura de iniciativas">
-  <h2>Arquitectura de iniciativas · Bloque 2A</h2>
+  <h2>Arquitectura de iniciativas</h2>
   <p>Completa la información estratégica sin modificar el registro ni los proyectos vinculados a cada iniciativa.</p>
   {error&&<p role="alert" className="po-auth-error">{error}</p>}{success&&<p role="status">{success}</p>}
   <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(150px,1fr))',gap:10,marginBottom:14}}>
