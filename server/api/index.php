@@ -191,6 +191,12 @@ if($action==='workspace' && $method==='PUT'){
   foreach(($prev['projects']??[]) as $p){if(is_array($p)&&isset($p['id']))$was[(string)$p['id']]=$p['methodologyId']??null;}
   foreach($payload['projects'] as $p){if(is_array($p)&&isset($p['id'])&&array_key_exists((string)$p['id'],$was)&&($p['methodologyId']??null)!=$was[(string)$p['id']])reply(403,['error'=>'Solo Gerencia, Dirección o Administración pueden cambiar la metodología de un proyecto']);}
  }
+ if(level($role)<3){
+  $prevJson=$db->query("SELECT payload FROM po_workspace WHERE id='main' LIMIT 1")->fetchColumn();
+  $previous=$prevJson?json_decode((string)$prevJson,true):[];
+  $priorProjects=[];foreach(($previous['projects']??[]) as $p){if(is_array($p)&&isset($p['id']))$priorProjects[(string)$p['id']]=$p['initiativeId']??null;}
+  foreach($payload['projects'] as $p){if(!is_array($p)||empty($p['id']))continue;$id=(string)$p['id'];if(array_key_exists('initiativeId',$p)&&($p['initiativeId']??null)!=($priorProjects[$id]??null))reply(403,['error'=>'Solo Gerencia, Dirección o Administración pueden cambiar la iniciativa estratégica']);}
+ }
  $json=json_encode($payload,JSON_UNESCAPED_UNICODE|JSON_THROW_ON_ERROR);
  if(strlen($json)>1500000)reply(413,['error'=>'Espacio demasiado grande']);
  $db->beginTransaction();
