@@ -1,6 +1,6 @@
 import {deriveStageFromActivities} from '../domain/activityProgress';
 import { lazy, Suspense, useCallback, useEffect, useState } from 'react';
-import { ArrowLeftRight, BarChart3, BookOpen, ChevronDown, ClipboardList, Database, FolderKanban, Gauge, Plus, ShieldAlert, UsersRound, Target, UserRoundCog } from 'lucide-react';
+import { ArrowLeftRight, BarChart3, ChevronDown, ClipboardList, Database, FolderKanban, Gauge, Plus, ShieldAlert, UsersRound, Target, UserRoundCog } from 'lucide-react';
 import type { GraphSettings, PerformanceIndicator, Project, RaidItem, Stage, Task, TeamMember, Workspace } from '../domain/model';
 import { createStages, migrateExistingProject } from '../domain/methodologies';
 import { ErrorBanner, Toast } from '../components/ui';
@@ -25,7 +25,6 @@ const ProjectsPage = lazy(() => import('../features/projects/ProjectsPage').then
 const TasksPage = lazy(() => import('../features/tasks/TasksPage').then((module) => ({ default: module.TasksPage })));
 const TeamPage = lazy(() => import('../features/team/TeamPage').then((module) => ({ default: module.TeamPage })));
 const RaidPage = lazy(() => import('../features/raid/RaidPage').then((module) => ({ default: module.RaidPage })));
-const MethodologiesPage = lazy(() => import('../features/methodologies/MethodologiesPage').then((module) => ({ default: module.MethodologiesPage })));
 const ReportsPage = lazy(() => import('../features/reports/ReportsPage').then((module) => ({ default: module.ReportsPage })));
 const DataPage = lazy(() => import('../features/data/DataPage').then((module) => ({ default: module.DataPage })));
 const AutomationPage = lazy(() => import('../features/automation/AutomationPage').then((module) => ({ default: module.AutomationPage })));
