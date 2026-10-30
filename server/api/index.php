@@ -159,6 +159,9 @@ if($action==='password_change' && $method==='POST'){
 }
 $u=member($db);$uid=(int)$u['id'];$role=$u['role'];
 if($action==='cells_v12') require __DIR__.'/cells_v12.php';
+if($action==='initiative_details_v12') require __DIR__.'/initiative_details_v12.php';
+if(in_array($action,['methodologies_v12','initiative_kpis_v12'],true)) require __DIR__.'/strategy_v12.php';
+if($action==='project_strategy_v12') require __DIR__.'/project_strategy_v12.php';
 if($action==='profile' && $method==='PUT'){
  csrf();$d=input();$name=trim((string)($d['name']??''));$avatar=(string)($d['avatar_animal']??'');
  $allowed=['🦊','🐯','🦁','🐼','🐻','🦉','🐬','🦋','🐢','🦄','🐺','🦜',''];
@@ -188,6 +191,12 @@ if($action==='workspace' && $method==='PUT'){
   foreach(($prev['projects']??[]) as $p){if(is_array($p)&&isset($p['id']))$was[(string)$p['id']]=$p['methodologyId']??null;}
   foreach($payload['projects'] as $p){if(is_array($p)&&isset($p['id'])&&array_key_exists((string)$p['id'],$was)&&($p['methodologyId']??null)!=$was[(string)$p['id']])reply(403,['error'=>'Solo Gerencia, Dirección o Administración pueden cambiar la metodología de un proyecto']);}
  }
+ if(level($role)<3){
+  $prevJson=$db->query("SELECT payload FROM po_workspace WHERE id='main' LIMIT 1")->fetchColumn();
+  $previous=$prevJson?json_decode((string)$prevJson,true):[];
+  $priorProjects=[];foreach(($previous['projects']??[]) as $p){if(is_array($p)&&isset($p['id']))$priorProjects[(string)$p['id']]=$p['initiativeId']??null;}
+  foreach($payload['projects'] as $p){if(!is_array($p)||empty($p['id']))continue;$id=(string)$p['id'];if(array_key_exists('initiativeId',$p)&&($p['initiativeId']??null)!=($priorProjects[$id]??null))reply(403,['error'=>'Solo Gerencia, Dirección o Administración pueden cambiar la iniciativa estratégica']);}
+ }
  $json=json_encode($payload,JSON_UNESCAPED_UNICODE|JSON_THROW_ON_ERROR);
  if(strlen($json)>1500000)reply(413,['error'=>'Espacio demasiado grande']);
  $db->beginTransaction();
@@ -196,6 +205,19 @@ if($action==='workspace' && $method==='PUT'){
  if($rev!==$current){$db->rollBack();reply(409,['error'=>'Los datos cambiaron en otra sesión. Recarga antes de guardar.']);}
  $sync=$db->prepare('INSERT INTO po_projects(id,name,description,status,payload) VALUES (?,?,?,?,?) ON DUPLICATE KEY UPDATE name=VALUES(name),description=VALUES(description),status=VALUES(status),payload=VALUES(payload)');
  foreach($payload['projects'] as $p){if(!is_array($p)||empty($p['id'])||empty($p['name']))continue;$sync->execute([(string)$p['id'],(string)$p['name'],(string)($p['description']??''),(string)($p['status']??'Por iniciar'),json_encode($p,JSON_UNESCAPED_UNICODE)]);}
+ // Keep the initiative relationship aligned with the project's single editor field.
+ // Legacy projects without initiativeId are untouched.
+ $unlink=$db->prepare('DELETE FROM po_initiative_projects WHERE project_id=?');
+ $linkInitiative=$db->prepare('INSERT INTO po_initiative_projects(initiative_id,project_id) VALUES (?,?)');
+ $validInitiative=$db->prepare('SELECT id FROM po_initiatives WHERE id=?');
+ foreach($payload['projects'] as $p){
+  if(!is_array($p)||empty($p['id'])||!array_key_exists('initiativeId',$p))continue;
+  $projectId=(string)$p['id'];$initiative=$p['initiativeId'];
+  if($initiative!==null&&$initiative!==''&&(!is_numeric($initiative)||(int)$initiative<1))throw new RuntimeException('Iniciativa inválida');
+  if($initiative!==null&&$initiative!==''){$validInitiative->execute([(int)$initiative]);if(!$validInitiative->fetchColumn())throw new RuntimeException('Iniciativa no encontrada');}
+  $unlink->execute([$projectId]);
+  if($initiative!==null&&$initiative!=='')$linkInitiative->execute([(int)$initiative,$projectId]);
+ }
  if($old){$q=$db->prepare("UPDATE po_workspace SET payload=?,revision=revision+1,updated_by=? WHERE id='main'");$q->execute([$json,$uid]);}
  else{$q=$db->prepare("INSERT INTO po_workspace(id,payload,revision,updated_by) VALUES ('main',?,1,?)");$q->execute([$json,$uid]);}
  logAction($db,$uid,'update','workspace','main');$db->commit();reply(200,['revision'=>$current+1]);
@@ -261,7 +283,13 @@ if($action==='initiatives' && $method==='POST'){
 }
 if($action==='initiatives' && in_array($method,['PUT','DELETE'],true)){
  csrf();if(level($role)<3)reply(403,['error'=>'Permiso insuficiente']);$d=input();$id=(int)($d['id']??0);if($id<1)reply(400,['error'=>'ID inválido']);
- if($method==='DELETE'){$q=$db->prepare('DELETE FROM po_initiatives WHERE id=?');$q->execute([$id]);logAction($db,$uid,'delete','initiative',(string)$id);reply(200,['ok'=>true]);}
+ if($method==='DELETE'){
+ // Evitar borrado en cascada de indicadores y dependientes del Bloque 2.
+ $check=$db->prepare('SELECT COUNT(*) FROM po_initiative_kpis_v12 WHERE initiative_id=?');$check->execute([$id]);
+ if((int)$check->fetchColumn()>0)reply(409,['error'=>'Esta iniciativa tiene KPIs. Conserva sus mediciones; no se puede eliminar.']);
+ $check=$db->prepare('SELECT COUNT(*) FROM po_initiative_details_v12 WHERE parent_initiative_id=?');$check->execute([$id]);
+ if((int)$check->fetchColumn()>0)reply(409,['error'=>'La iniciativa tiene dependientes departamentales y no puede eliminarse.']);
+ $q=$db->prepare('DELETE FROM po_initiatives WHERE id=?');$q->execute([$id]);logAction($db,$uid,'delete','initiative',(string)$id);reply(200,['ok'=>true]);}
  $title=trim((string)($d['title']??''));$objective=trim((string)($d['objective']??''));$status=(string)($d['status']??'Planeada');$projects=$d['projectIds']??[];
  if(!$title||strlen($title)>190||!in_array($status,['Planeada','En ejecución','Completada','En riesgo'],true)||!is_array($projects))reply(400,['error'=>'Iniciativa inválida']);
  $db->beginTransaction();

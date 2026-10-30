@@ -10,7 +10,7 @@ fail=0
 # 1) Lista blanca de rutas publicables.
 while IFS= read -r f; do
   case "$f" in
-    ./index.html|./.htaccess|./version.json|./api/index.php|./api/cells_v12.php) ;;
+    ./index.html|./.htaccess|./version.json|./api/index.php|./api/cells_v12.php|./api/initiative_details_v12.php|./api/strategy_v12.php|./api/project_strategy_v12.php) ;;
     ./assets/*.js|./assets/*.css|./assets/*.svg|./assets/*.png|./assets/*.jpg|./assets/*.webp|./assets/*.woff|./assets/*.woff2) ;;
     ./*.svg|./manus-routes.json|./favicon.ico|./robots.txt) ;;
     *) echo "::error::Archivo no permitido en el paquete: $f"; fail=1 ;;
@@ -30,7 +30,7 @@ if grep -rlE -- '-----BEGIN [A-Z ]*PRIVATE KEY-----|bootstrap_token[[:space:]]*[
 fi
 
 # 4) Contenido mínimo obligatorio.
-for req in index.html .htaccess api/index.php api/cells_v12.php version.json; do
+for req in index.html .htaccess api/index.php api/cells_v12.php api/initiative_details_v12.php api/strategy_v12.php api/project_strategy_v12.php version.json; do
   test -s "$req" || { echo "::error::Falta $req"; fail=1; }
 done
 grep -q 'ProcessOne' index.html || { echo "::error::index.html no corresponde a ProcessOne"; fail=1; }
