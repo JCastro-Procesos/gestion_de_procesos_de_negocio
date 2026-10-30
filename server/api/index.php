@@ -199,6 +199,19 @@ if($action==='workspace' && $method==='PUT'){
  if($rev!==$current){$db->rollBack();reply(409,['error'=>'Los datos cambiaron en otra sesión. Recarga antes de guardar.']);}
  $sync=$db->prepare('INSERT INTO po_projects(id,name,description,status,payload) VALUES (?,?,?,?,?) ON DUPLICATE KEY UPDATE name=VALUES(name),description=VALUES(description),status=VALUES(status),payload=VALUES(payload)');
  foreach($payload['projects'] as $p){if(!is_array($p)||empty($p['id'])||empty($p['name']))continue;$sync->execute([(string)$p['id'],(string)$p['name'],(string)($p['description']??''),(string)($p['status']??'Por iniciar'),json_encode($p,JSON_UNESCAPED_UNICODE)]);}
+ // Keep the initiative relationship aligned with the project's single editor field.
+ // Legacy projects without initiativeId are untouched.
+ $unlink=$db->prepare('DELETE FROM po_initiative_projects WHERE project_id=?');
+ $linkInitiative=$db->prepare('INSERT INTO po_initiative_projects(initiative_id,project_id) VALUES (?,?)');
+ $validInitiative=$db->prepare('SELECT id FROM po_initiatives WHERE id=?');
+ foreach($payload['projects'] as $p){
+  if(!is_array($p)||empty($p['id'])||!array_key_exists('initiativeId',$p))continue;
+  $projectId=(string)$p['id'];$initiative=$p['initiativeId'];
+  if($initiative!==null&&$initiative!==''&&(!is_numeric($initiative)||(int)$initiative<1))throw new RuntimeException('Iniciativa inválida');
+  if($initiative!==null&&$initiative!==''){$validInitiative->execute([(int)$initiative]);if(!$validInitiative->fetchColumn())throw new RuntimeException('Iniciativa no encontrada');}
+  $unlink->execute([$projectId]);
+  if($initiative!==null&&$initiative!=='')$linkInitiative->execute([(int)$initiative,$projectId]);
+ }
  if($old){$q=$db->prepare("UPDATE po_workspace SET payload=?,revision=revision+1,updated_by=? WHERE id='main'");$q->execute([$json,$uid]);}
  else{$q=$db->prepare("INSERT INTO po_workspace(id,payload,revision,updated_by) VALUES ('main',?,1,?)");$q->execute([$json,$uid]);}
  logAction($db,$uid,'update','workspace','main');$db->commit();reply(200,['revision'=>$current+1]);
