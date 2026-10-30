@@ -237,5 +237,5 @@ button:focus-visible,a:focus-visible,[role="button"]:focus-visible{outline:3px s
 .po-blocker-form{display:grid;gap:18px;padding:8px 0}
 .po-blocker-form p{font-size:13px;line-height:1.7;color:#52617d}
 .po-blocker-form textarea{min-height:130px;resize:vertical}
-.po-blocked-progress .stage-head-progress .progress-bar-fill,.po-blocked-progress .progress-bar>span{background:#df4654!important}
+.po-blocked-progress .stage-head-progress .progress-track>span,.po-project-blocked .progress-track>span{background:#df4654!important}
 .po-project-blocked .itm-hero-progress-track i{background:#df4654!important}
