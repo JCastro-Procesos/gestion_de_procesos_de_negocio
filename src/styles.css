@@ -229,3 +229,13 @@ button:focus-visible,a:focus-visible,[role="button"]:focus-visible{outline:3px s
 .po-strategy-summary p,.po-strategy-summary li{font-size:13px;line-height:1.75}
 .po-strategy-summary ul{padding-left:22px}
 @media(max-width:650px){.po-strategy-links{flex-direction:column}.po-strategy-link{width:100%;justify-content:space-between}.po-strategy-summary{padding:16px}}
+
+/* Strategic linking and blockers: red is limited to progress lines */
+.po-strategy-picker{display:grid;gap:12px;margin-top:20px;padding:16px;border:1px solid #dbe5f6;border-radius:14px;background:#f8faff}
+.po-strategy-picker label,.po-blocker-form label{display:grid;gap:8px;font-size:13px;font-weight:700}
+.po-strategy-picker select{width:100%}
+.po-blocker-form{display:grid;gap:18px;padding:8px 0}
+.po-blocker-form p{font-size:13px;line-height:1.7;color:#52617d}
+.po-blocker-form textarea{min-height:130px;resize:vertical}
+.po-blocked-progress .stage-head-progress .progress-bar-fill,.po-blocked-progress .progress-bar>span{background:#df4654!important}
+.po-project-blocked .itm-hero-progress-track i{background:#df4654!important}
