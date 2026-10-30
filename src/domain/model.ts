@@ -8,7 +8,8 @@ export type RaidSeverity = 'Baja' | 'Media' | 'Alta' | 'Crítica';
 export type RaidStatus = 'Abierto' | 'En tratamiento' | 'Escalado' | 'Cerrado';
 
 export interface Methodology { id: number; name: string; description: string; when: string; tools: string[]; outputs: string[]; result: string; }
-export interface Activity { id: string; name: string; deliverable: string; ownerId: string; startDate: string; dueDate: string; status: StageStatus; progress: number; evidenceUrl?: string; verifiedBy?: string; verifiedAt?: string; }
+export interface ActivityOrigin { kind: 'Metodología'; templateId: number; version: number; activityId: number; incorporatedAt: string; }
+export interface Activity { origin?: ActivityOrigin; id: string; name: string; deliverable: string; ownerId: string; startDate: string; dueDate: string; status: StageStatus; progress: number; evidenceUrl?: string; verifiedBy?: string; verifiedAt?: string; }
 export interface Stage { id: string; projectId: string; order: number; name: string; objective: string; startDate: string; dueDate: string; status: StageStatus; progress: number; activities: Activity[]; }
 export interface Project { id: string; name: string; area: string; priority?: 'Baja' | 'Media' | 'Alta'; scopeAreas?: string[]; ownerId: string; sponsor: string; methodologyId: number;
   initiativeId?: number | null; status: ProjectStatus; semaforo: Semaforo; startDate: string; dueDate: string; goal: string; description: string; createdAt: string; updatedAt: string; problemStatement?: string; parentProjectId?: string; blockerReason?: string; planType?: 'Tecnológico' | 'Documentación' | 'Optimización'; externalCalendarEventId?: string; }
