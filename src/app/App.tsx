@@ -1,3 +1,4 @@
+import {deriveStageFromActivities} from '../domain/activityProgress';
 import { lazy, Suspense, useCallback, useEffect, useState } from 'react';
 import { ArrowLeftRight, BarChart3, BookOpen, ChevronDown, ClipboardList, Database, FolderKanban, Gauge, Plus, ShieldAlert, UsersRound, Target, UserRoundCog } from 'lucide-react';
 import type { GraphSettings, PerformanceIndicator, Project, RaidItem, Stage, Task, TeamMember, Workspace } from '../domain/model';
@@ -108,7 +109,7 @@ export function App() {
   };
   const updateStage = (stage: Stage) => { if(stage.status==='Completada' && stage.activities.some(activity=>activity.status!=='Completada'||!activity.deliverable.trim()||!activity.evidenceUrl?.startsWith('https://'))){flash('Para cerrar una etapa, completa las actividades y registra entregables con enlaces HTTPS de evidencia.');return;} update((current) => ({ ...current, stages: current.stages.map((item) => item.id === stage.id ? stage : item) })); };
   const addActivity = (stage: Stage, activity: Stage['activities'][number]) => update((current) => ({ ...current, stages: current.stages.map((item) => item.id === stage.id ? { ...item, activities: [...item.activities, activity] } : item) }));
-  const updateActivity = (stage: Stage, activity: Stage['activities'][number]) => update((current) => ({ ...current, stages: current.stages.map((item) => item.id === stage.id ? { ...item, activities: item.activities.map((old) => old.id === activity.id ? activity : old) } : item) }));
+  const updateActivity = (stage: Stage, activity: Stage['activities'][number]) => update((current) => ({ ...current, stages: current.stages.map((item) => item.id === stage.id ? deriveStageFromActivities({ ...item, activities: item.activities.map((old) => old.id === activity.id ? activity : old) }) : item) }));
 
   const saveTask = (task: Task, isNew: boolean) => { if(task.status==='Completado' && (task.blockedByTaskIds||[]).some(id=>workspace.tasks.some(t=>t.id===id&&t.status!=='Completado'))){flash('No se puede completar: existen tareas predecesoras pendientes.');return;}update((current) => ({ ...current, tasks: isNew ? [task, ...current.tasks] : current.tasks.map((item) => item.id === task.id ? task : item) })); };
   const deleteTask = (id: string) => update((current) => ({ ...current, tasks: current.tasks.filter((task) => task.id !== id), timeLogs: current.timeLogs.filter((log) => log.taskId !== id) }));
