@@ -197,12 +197,59 @@ if($action==='workspace' && $method==='PUT'){
   $priorProjects=[];foreach(($previous['projects']??[]) as $p){if(is_array($p)&&isset($p['id']))$priorProjects[(string)$p['id']]=$p['initiativeId']??null;}
   foreach($payload['projects'] as $p){if(!is_array($p)||empty($p['id']))continue;$id=(string)$p['id'];if(array_key_exists('initiativeId',$p)&&($p['initiativeId']??null)!=($priorProjects[$id]??null))reply(403,['error'=>'Solo Gerencia, Dirección o Administración pueden cambiar la iniciativa estratégica']);}
  }
+ // El catálogo se guarda con el workspace y su revisión; no requiere nuevas tablas.
+ if(array_key_exists('alignmentCatalog',$payload)){
+  $catalog=$payload['alignmentCatalog'];
+  if(!is_array($catalog)||($catalog['version']??null)!==1||!is_array($catalog['methodologies']??null)||count($catalog['methodologies'])!==5||!is_array($catalog['macroActivities']??null)||count($catalog['macroActivities'])>500)reply(400,['error'=>'Catálogo de alineación inválido']);
+  $validActivities=function($rows):bool{
+   if(!is_array($rows)||count($rows)>100)return false;$seen=[];
+   foreach($rows as $a){if(!is_array($a)||!is_string($a['id']??null)||$a['id']===''||strlen($a['id'])>100||isset($seen[$a['id']]))return false;$seen[$a['id']]=true;
+    foreach(['title'=>190,'deliverable'=>500,'acceptanceCriteria'=>2000] as $k=>$max)if(!is_string($a[$k]??null)||trim($a[$k])===''||mb_strlen($a[$k])>$max)return false;
+    if(!is_int($a['stageOrder']??null)||$a['stageOrder']<1||$a['stageOrder']>6||!is_numeric($a['estimatedDays']??null)||!is_finite((float)$a['estimatedDays'])||$a['estimatedDays']<0||$a['estimatedDays']>3650||!is_string($a['suggestedRole']??null)||mb_strlen($a['suggestedRole'])>100)return false;
+   }return true;
+  };
+  $ids=[];foreach($catalog['methodologies'] as $m){
+   if(!is_array($m)||!is_int($m['id']??null)||$m['id']<1||$m['id']>5||isset($ids[$m['id']])||!is_int($m['version']??null)||$m['version']<1)reply(400,['error'=>'Metodología de catálogo inválida']);$ids[$m['id']]=true;
+   foreach(['name'=>190,'description'=>2000] as $k=>$max)if(!is_string($m[$k]??null)||trim($m[$k])===''||mb_strlen($m[$k])>$max)reply(400,['error'=>'Completa nombre y propósito de metodología']);
+   if(!is_array($m['outputs']??null)||!count($m['outputs'])||count($m['outputs'])>100||!$validActivities($m['activities']??null)||!is_array($m['kpis']??null)||count($m['kpis'])>50)reply(400,['error'=>'Actividades o entregables inválidos']);
+   foreach($m['outputs'] as $output)if(!is_string($output)||trim($output)===''||mb_strlen($output)>500)reply(400,['error'=>'Entregable inválido']);
+   $kpiIds=[];foreach($m['kpis'] as $k){
+    if(!is_array($k)||!is_string($k['id']??null)||$k['id']===''||strlen($k['id'])>100||isset($kpiIds[$k['id']])||!in_array($k['direction']??'', ['increase','decrease'],true))reply(400,['error'=>'KPI de metodología inválido']);$kpiIds[$k['id']]=true;
+    foreach(['name'=>190,'unit'=>60,'frequency'=>60,'formula'=>1000,'source'=>500] as $key=>$max)if(!is_string($k[$key]??null)||mb_strlen($k[$key])>$max||(in_array($key,['name','unit','frequency'],true)&&trim($k[$key])===''))reply(400,['error'=>'Definición de KPI inválida']);
+    foreach(['baseline','target'] as $key)if(($k[$key]??null)!==null&&(!is_numeric($k[$key])||!is_finite((float)$k[$key])))reply(400,['error'=>'Línea base o meta inválida']);
+    if(($k['baseline']??null)!==null&&($k['target']??null)!==null&&($k['direction']==='increase'?$k['target']<=$k['baseline']:$k['target']>=$k['baseline']))reply(400,['error'=>'La meta debe seguir la dirección del KPI']);
+   }
+  }
+  foreach($catalog['macroActivities'] as $id=>$rows)if(!ctype_digit((string)$id)||(int)$id<1||!$validActivities($rows))reply(400,['error'=>'Plan de macroiniciativa inválido']);
+  if(isset($catalog['macroMethodologyIds'])){
+   if(!is_array($catalog['macroMethodologyIds'])||count($catalog['macroMethodologyIds'])>500)reply(400,['error'=>'Vinculación macroiniciativa-metodología inválida']);
+   foreach($catalog['macroMethodologyIds'] as $id=>$methodIds){
+    if(!ctype_digit((string)$id)||(int)$id<1||!is_array($methodIds)||count($methodIds)<1||count($methodIds)>5)reply(400,['error'=>'Selecciona al menos una metodología válida por macroiniciativa']);
+    foreach($methodIds as $mid)if(!is_int($mid)||$mid<1||$mid>5)reply(400,['error'=>'Metodología vinculada inválida']);
+    if(count(array_unique($methodIds))!==count($methodIds))reply(400,['error'=>'No repitas metodologías en una macroiniciativa']);
+   }
+  }
+ }
  $json=json_encode($payload,JSON_UNESCAPED_UNICODE|JSON_THROW_ON_ERROR);
  if(strlen($json)>1500000)reply(413,['error'=>'Espacio demasiado grande']);
  $db->beginTransaction();
  try {
  $q=$db->query("SELECT revision FROM po_workspace WHERE id='main' FOR UPDATE");$old=$q->fetch();$current=$old?(int)$old['revision']:0;
  if($rev!==$current){$db->rollBack();reply(409,['error'=>'Los datos cambiaron en otra sesión. Recarga antes de guardar.']);}
+ $priorPayload=$db->query("SELECT payload FROM po_workspace WHERE id='main'")->fetchColumn();$priorPayload=$priorPayload?json_decode((string)$priorPayload,true):[];
+ // Un cliente antiguo que no conoce el catálogo no puede borrarlo al guardar otro cambio.
+ if(!array_key_exists('alignmentCatalog',$payload)&&isset($priorPayload['alignmentCatalog']))$payload['alignmentCatalog']=$priorPayload['alignmentCatalog'];
+ $catalogChanged=json_encode($payload['alignmentCatalog']??null)!==json_encode($priorPayload['alignmentCatalog']??null);
+ if($catalogChanged&&level($role)<3){$db->rollBack();reply(403,['error'=>'Solo Gerencia, Dirección o Administración pueden editar el catálogo de metodologías y macroiniciativas']);}
+ $priorProjectIds=[];foreach(($priorPayload['projects']??[]) as $p)if(is_array($p)&&isset($p['id']))$priorProjectIds[(string)$p['id']]=true;
+ foreach($payload['projects'] as $p){
+  if(!is_array($p)||empty($p['id'])||isset($priorProjectIds[(string)$p['id']]))continue;
+  $iid=$p['initiativeId']??null;$mid=$p['methodologyId']??null;
+  if(!is_numeric($iid)||(int)$iid<1||!is_numeric($mid)||(int)$mid<1||(int)$mid>5||trim((string)($p['area']??''))===''){$db->rollBack();reply(400,['error'=>'Los proyectos nuevos requieren macroiniciativa principal, metodología y área cliente']);}
+  $allowed=$payload['alignmentCatalog']['macroMethodologyIds'][(string)$iid]??[];
+  if($allowed&&!in_array((int)$mid,$allowed,true)){$db->rollBack();reply(400,['error'=>'La metodología del proyecto no está vinculada a su macroiniciativa']);}
+ }
+ $json=json_encode($payload,JSON_UNESCAPED_UNICODE|JSON_THROW_ON_ERROR);if(strlen($json)>1500000){$db->rollBack();reply(413,['error'=>'Espacio demasiado grande']);}
  $sync=$db->prepare('INSERT INTO po_projects(id,name,description,status,payload) VALUES (?,?,?,?,?) ON DUPLICATE KEY UPDATE name=VALUES(name),description=VALUES(description),status=VALUES(status),payload=VALUES(payload)');
  foreach($payload['projects'] as $p){if(!is_array($p)||empty($p['id'])||empty($p['name']))continue;$sync->execute([(string)$p['id'],(string)$p['name'],(string)($p['description']??''),(string)($p['status']??'Por iniciar'),json_encode($p,JSON_UNESCAPED_UNICODE)]);}
  // Keep the initiative relationship aligned with the project's single editor field.
@@ -220,6 +267,7 @@ if($action==='workspace' && $method==='PUT'){
  }
  if($old){$q=$db->prepare("UPDATE po_workspace SET payload=?,revision=revision+1,updated_by=? WHERE id='main'");$q->execute([$json,$uid]);}
  else{$q=$db->prepare("INSERT INTO po_workspace(id,payload,revision,updated_by) VALUES ('main',?,1,?)");$q->execute([$json,$uid]);}
+ if($catalogChanged)logAction($db,$uid,'update','alignment_catalog','main');
  logAction($db,$uid,'update','workspace','main');$db->commit();reply(200,['revision'=>$current+1]);
  }catch(Throwable $e){if($db->inTransaction())$db->rollBack();reply(500,['error'=>'No fue posible guardar']);}
 }
