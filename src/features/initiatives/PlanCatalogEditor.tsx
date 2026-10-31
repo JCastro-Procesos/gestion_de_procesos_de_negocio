@@ -8,7 +8,7 @@ export function PlanCatalogEditor({method,activities,canEdit,onSave,onCancel}:{m
  const [error,setError]=useState('');
  const edit=(id:string,key:keyof PlanActivity,value:string|number)=>setRows(old=>old.map(a=>a.id===id?{...a,[key]:value}:a));
  const editKpi=(id:string,key:keyof PlanKpi,value:string|number|null)=>setDraft(old=>old?{...old,kpis:old.kpis.map(k=>k.id===id?{...k,[key]:value}:k)}:old);
- return <form className="po-catalog-editor" onSubmit={e=>{e.preventDefault();if(!canEdit)return;
+ return <form className="po-catalog-editor" onSubmit={e=>{e.preventDefault();if(!canEdit)return;if(draft&&(!draft.name.trim()||!draft.description.trim()||!draft.outputs.some(o=>o.trim()))){setError('Completa nombre, propósito y al menos un contenido de la metodología.');return;}
   if(rows.some(a=>!a.title.trim()||!a.deliverable.trim()||!a.acceptanceCriteria.trim()||!Number.isInteger(a.stageOrder)||a.stageOrder<1||a.stageOrder>6||!Number.isFinite(a.estimatedDays)||a.estimatedDays<0)){setError('Completa actividad, entregable, aceptación, etapa y duración válida.');return}
   if(draft?.kpis.some(k=>!k.name.trim()||!k.unit.trim()||(k.baseline!==null&&k.target!==null&&(k.direction==='increase'?k.target<=k.baseline:k.target>=k.baseline)))){setError('Cada KPI requiere nombre, unidad y una meta coherente con su dirección.');return}
   onSave(rows,draft);}}>

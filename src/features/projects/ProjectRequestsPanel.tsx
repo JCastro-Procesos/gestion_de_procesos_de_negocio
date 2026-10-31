@@ -17,7 +17,7 @@ export function ProjectRequestsPanel({workspace,onSaveProject,toast}:{workspace:
  const [requests,setRequests]=useState(readProjectRequests);
  const [initiatives,setInitiatives]=useState<{id:number;title:string}[]>([]);
  useEffect(()=>{void api<{initiatives:{id:number;title:string}[]}>('initiatives').then(r=>setInitiatives(r.initiatives)).catch(()=>{})},[]);
- const change=(id:string,key:'initiativeId'|'methodologyId',value:number|null)=>persist(requests.map(r=>r.id===id?{...r,[key]:value}:r));
+ const change=(id:string,key:'initiativeId'|'methodologyId',value:number|null)=>persist(requests.map(r=>{if(r.id!==id)return r;if(key==='initiativeId'){const allowed=methodsForMacro(catalogFor(workspace),value);return {...r,initiativeId:value,methodologyId:allowed.some(m=>m.id===(r.methodologyId||2))?(r.methodologyId||2):allowed[0]?.id||2}}return {...r,methodologyId:value||2}}));
  useEffect(()=>{const refresh=()=>setRequests(readProjectRequests());window.addEventListener('itm-project-requests-updated',refresh);return()=>window.removeEventListener('itm-project-requests-updated',refresh);},[]);
  const persist=(next:ProjectRequest[])=>{setRequests(next);localStorage.setItem(REQUEST_KEY,JSON.stringify(next));window.dispatchEvent(new Event('itm-project-requests-updated'));};
  const decide=(r:ProjectRequest,approved:boolean)=>{if(r.status!=='Pendiente')return;
