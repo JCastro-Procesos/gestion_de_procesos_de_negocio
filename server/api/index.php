@@ -197,12 +197,59 @@ if($action==='workspace' && $method==='PUT'){
   $priorProjects=[];foreach(($previous['projects']??[]) as $p){if(is_array($p)&&isset($p['id']))$priorProjects[(string)$p['id']]=$p['initiativeId']??null;}
   foreach($payload['projects'] as $p){if(!is_array($p)||empty($p['id']))continue;$id=(string)$p['id'];if(array_key_exists('initiativeId',$p)&&($p['initiativeId']??null)!=($priorProjects[$id]??null))reply(403,['error'=>'Solo Gerencia, Dirección o Administración pueden cambiar la iniciativa estratégica']);}
  }
+ // El catálogo se guarda con el workspace y su revisión; no requiere nuevas tablas.
+ if(array_key_exists('alignmentCatalog',$payload)){
+  $catalog=$payload['alignmentCatalog'];
+  if(!is_array($catalog)||($catalog['version']??null)!==1||!is_array($catalog['methodologies']??null)||count($catalog['methodologies'])!==5||!is_array($catalog['macroActivities']??null)||count($catalog['macroActivities'])>500)reply(400,['error'=>'Catálogo de alineación inválido']);
+  $validActivities=function($rows):bool{
+   if(!is_array($rows)||count($rows)>100)return false;$seen=[];
+   foreach($rows as $a){if(!is_array($a)||!is_string($a['id']??null)||$a['id']===''||strlen($a['id'])>100||isset($seen[$a['id']]))return false;$seen[$a['id']]=true;
+    foreach(['title'=>190,'deliverable'=>500,'acceptanceCriteria'=>2000] as $k=>$max)if(!is_string($a[$k]??null)||trim($a[$k])===''||mb_strlen($a[$k])>$max)return false;
+    if(!is_int($a['stageOrder']??null)||$a['stageOrder']<1||$a['stageOrder']>6||!is_numeric($a['estimatedDays']??null)||!is_finite((float)$a['estimatedDays'])||$a['estimatedDays']<0||$a['estimatedDays']>3650||!is_string($a['suggestedRole']??null)||mb_strlen($a['suggestedRole'])>100)return false;
+   }return true;
+  };
+  $ids=[];foreach($catalog['methodologies'] as $m){
+   if(!is_array($m)||!is_int($m['id']??null)||$m['id']<1||$m['id']>5||isset($ids[$m['id']])||!is_int($m['version']??null)||$m['version']<1)reply(400,['error'=>'Metodología de catálogo inválida']);$ids[$m['id']]=true;
+   foreach(['name'=>190,'description'=>2000] as $k=>$max)if(!is_string($m[$k]??null)||trim($m[$k])===''||mb_strlen($m[$k])>$max)reply(400,['error'=>'Completa nombre y propósito de metodología']);
+   if(!is_array($m['outputs']??null)||!count($m['outputs'])||count($m['outputs'])>100||!$validActivities($m['activities']??null)||!is_array($m['kpis']??null)||count($m['kpis'])>50)reply(400,['error'=>'Actividades o entregables inválidos']);
+   foreach($m['outputs'] as $output)if(!is_string($output)||trim($output)===''||mb_strlen($output)>500)reply(400,['error'=>'Entregable inválido']);
+   $kpiIds=[];foreach($m['kpis'] as $k){
+    if(!is_array($k)||!is_string($k['id']??null)||$k['id']===''||strlen($k['id'])>100||isset($kpiIds[$k['id']])||!in_array($k['direction']??'', ['increase','decrease'],true))reply(400,['error'=>'KPI de metodología inválido']);$kpiIds[$k['id']]=true;
+    foreach(['name'=>190,'unit'=>60,'frequency'=>60,'formula'=>1000,'source'=>500] as $key=>$max)if(!is_string($k[$key]??null)||mb_strlen($k[$key])>$max||(in_array($key,['name','unit','frequency'],true)&&trim($k[$key])===''))reply(400,['error'=>'Definición de KPI inválida']);
+    foreach(['baseline','target'] as $key)if(($k[$key]??null)!==null&&(!is_numeric($k[$key])||!is_finite((float)$k[$key])))reply(400,['error'=>'Línea base o meta inválida']);
+    if(($k['baseline']??null)!==null&&($k['target']??null)!==null&&($k['direction']==='increase'?$k['target']<=$k['baseline']:$k['target']>=$k['baseline']))reply(400,['error'=>'La meta debe seguir la dirección del KPI']);
+   }
+  }
+  foreach($catalog['macroActivities'] as $id=>$rows)if(!ctype_digit((string)$id)||(int)$id<1||!$validActivities($rows))reply(400,['error'=>'Plan de macroiniciativa inválido']);
+  if(isset($catalog['macroMethodologyIds'])){
+   if(!is_array($catalog['macroMethodologyIds'])||count($catalog['macroMethodologyIds'])>500)reply(400,['error'=>'Vinculación macroiniciativa-metodología inválida']);
+   foreach($catalog['macroMethodologyIds'] as $id=>$methodIds){
+    if(!ctype_digit((string)$id)||(int)$id<1||!is_array($methodIds)||count($methodIds)<1||count($methodIds)>5)reply(400,['error'=>'Selecciona al menos una metodología válida por macroiniciativa']);
+    foreach($methodIds as $mid)if(!is_int($mid)||$mid<1||$mid>5)reply(400,['error'=>'Metodología vinculada inválida']);
+    if(count(array_unique($methodIds))!==count($methodIds))reply(400,['error'=>'No repitas metodologías en una macroiniciativa']);
+   }
+  }
+ }
  $json=json_encode($payload,JSON_UNESCAPED_UNICODE|JSON_THROW_ON_ERROR);
  if(strlen($json)>1500000)reply(413,['error'=>'Espacio demasiado grande']);
  $db->beginTransaction();
  try {
  $q=$db->query("SELECT revision FROM po_workspace WHERE id='main' FOR UPDATE");$old=$q->fetch();$current=$old?(int)$old['revision']:0;
  if($rev!==$current){$db->rollBack();reply(409,['error'=>'Los datos cambiaron en otra sesión. Recarga antes de guardar.']);}
+ $priorPayload=$db->query("SELECT payload FROM po_workspace WHERE id='main'")->fetchColumn();$priorPayload=$priorPayload?json_decode((string)$priorPayload,true):[];
+ // Un cliente antiguo que no conoce el catálogo no puede borrarlo al guardar otro cambio.
+ if(!array_key_exists('alignmentCatalog',$payload)&&isset($priorPayload['alignmentCatalog']))$payload['alignmentCatalog']=$priorPayload['alignmentCatalog'];
+ $catalogChanged=json_encode($payload['alignmentCatalog']??null)!==json_encode($priorPayload['alignmentCatalog']??null);
+ if($catalogChanged&&level($role)<3){$db->rollBack();reply(403,['error'=>'Solo Gerencia, Dirección o Administración pueden editar el catálogo de metodologías y macroiniciativas']);}
+ $priorProjectIds=[];foreach(($priorPayload['projects']??[]) as $p)if(is_array($p)&&isset($p['id']))$priorProjectIds[(string)$p['id']]=true;
+ foreach($payload['projects'] as $p){
+  if(!is_array($p)||empty($p['id'])||isset($priorProjectIds[(string)$p['id']]))continue;
+  $iid=$p['initiativeId']??null;$mid=$p['methodologyId']??null;
+  if(!is_numeric($iid)||(int)$iid<1||!is_numeric($mid)||(int)$mid<1||(int)$mid>5||trim((string)($p['area']??''))===''){$db->rollBack();reply(400,['error'=>'Los proyectos nuevos requieren macroiniciativa principal, metodología y área cliente']);}
+  $allowed=$payload['alignmentCatalog']['macroMethodologyIds'][(string)$iid]??[];
+  if($allowed&&!in_array((int)$mid,$allowed,true)){$db->rollBack();reply(400,['error'=>'La metodología del proyecto no está vinculada a su macroiniciativa']);}
+ }
+ $json=json_encode($payload,JSON_UNESCAPED_UNICODE|JSON_THROW_ON_ERROR);if(strlen($json)>1500000){$db->rollBack();reply(413,['error'=>'Espacio demasiado grande']);}
  $sync=$db->prepare('INSERT INTO po_projects(id,name,description,status,payload) VALUES (?,?,?,?,?) ON DUPLICATE KEY UPDATE name=VALUES(name),description=VALUES(description),status=VALUES(status),payload=VALUES(payload)');
  foreach($payload['projects'] as $p){if(!is_array($p)||empty($p['id'])||empty($p['name']))continue;$sync->execute([(string)$p['id'],(string)$p['name'],(string)($p['description']??''),(string)($p['status']??'Por iniciar'),json_encode($p,JSON_UNESCAPED_UNICODE)]);}
  // Keep the initiative relationship aligned with the project's single editor field.
@@ -220,6 +267,7 @@ if($action==='workspace' && $method==='PUT'){
  }
  if($old){$q=$db->prepare("UPDATE po_workspace SET payload=?,revision=revision+1,updated_by=? WHERE id='main'");$q->execute([$json,$uid]);}
  else{$q=$db->prepare("INSERT INTO po_workspace(id,payload,revision,updated_by) VALUES ('main',?,1,?)");$q->execute([$json,$uid]);}
+ if($catalogChanged)logAction($db,$uid,'update','alignment_catalog','main');
  logAction($db,$uid,'update','workspace','main');$db->commit();reply(200,['revision'=>$current+1]);
  }catch(Throwable $e){if($db->inTransaction())$db->rollBack();reply(500,['error'=>'No fue posible guardar']);}
 }
@@ -267,19 +315,64 @@ if($action==='users_resend' && $method==='POST'){
  $r=issueInvite($db,$settings,$id,$t['name'],$t['email']);logAction($db,$uid,'resend_invite','user',(string)$id);
  reply(200,inviteReply($r,$t['email'],'Acceso reenviado a '.$t['email']));
 }
+// Perfil de macroiniciativa: amplía la tabla de detalles existente, sin migraciones.
+function macroProfileRead(array $d):array {
+ $saved=json_decode((string)($d['baseline_plan']??''),true);$extra=is_array($saved)?($saved['macroProfileV1']??[]):[];
+ return array_merge(['code'=>'','strategicAlignment'=>'','problemStatement'=>'','expectedBenefit'=>'','scopeText'=>'','exclusions'=>'','department'=>'','sponsorUserId'=>null,'processOwnerUserId'=>null,'cellId'=>null,'startDate'=>'','targetDate'=>'','priority'=>'Media','successCriteria'=>'','measurementPlan'=>'','resources'=>'','risks'=>'','dependencies'=>'','reviewFrequency'=>'Mensual','estimatedBudget'=>'','currency'=>'MXN'],is_array($extra)?$extra:[],[
+ 'code'=>$d['code']??'','department'=>$d['department']??'','problemStatement'=>$d['problem_statement']??'','expectedBenefit'=>$d['expected_benefit']??'','scopeText'=>$d['scope_text']??'','priority'=>$d['priority']??'Media','sponsorUserId'=>isset($d['sponsor_user_id'])?(int)$d['sponsor_user_id']:null,'processOwnerUserId'=>isset($d['process_owner_user_id'])?(int)$d['process_owner_user_id']:null,'cellId'=>isset($d['cell_id'])?(int)$d['cell_id']:null,'startDate'=>$d['start_date']??'','targetDate'=>$d['target_date']??''
+ ]);
+}
+function macroProfileValidate(PDO $db,mixed $raw,string $status,?int $id=null):array {
+ if(!is_array($raw))reply(400,['error'=>'Completa la ficha de macroiniciativa']);$p=[];
+ $limits=['code'=>32,'strategicAlignment'=>2000,'problemStatement'=>5000,'expectedBenefit'=>5000,'scopeText'=>5000,'exclusions'=>2000,'department'=>120,'startDate'=>10,'targetDate'=>10,'priority'=>10,'successCriteria'=>2000,'measurementPlan'=>2000,'resources'=>2000,'risks'=>2000,'dependencies'=>2000,'reviewFrequency'=>60,'estimatedBudget'=>30,'currency'=>3];
+ foreach($limits as $key=>$max){if(!is_string($raw[$key]??''))reply(400,['error'=>'Campo de macroiniciativa inválido']);$p[$key]=trim($raw[$key]??'');if(mb_strlen($p[$key])>$max)reply(400,['error'=>'Uno de los campos excede el máximo permitido']);}
+ foreach(['strategicAlignment','problemStatement','expectedBenefit','scopeText','department','successCriteria','measurementPlan'] as $key)if($p[$key]==='')reply(400,['error'=>'Completa alineación, problema, beneficio, alcance, área y criterios de medición']);
+ if($p['code']!==''&&!preg_match('/^[A-Za-z0-9_-]{2,32}$/',$p['code']))reply(400,['error'=>'Código inválido']);$p['code']=strtoupper($p['code']);
+ if(!in_array($p['priority'],['Baja','Media','Alta','Crítica'],true)||$p['reviewFrequency']===''||!preg_match('/^[A-Z]{3}$/',$p['currency']))reply(400,['error'=>'Revisa prioridad, frecuencia y moneda']);
+ if($p['estimatedBudget']!==''&&(!is_numeric($p['estimatedBudget'])||!is_finite((float)$p['estimatedBudget'])||(float)$p['estimatedBudget']<0))reply(400,['error'=>'Presupuesto estimado inválido']);
+ foreach(['startDate','targetDate'] as $key){$v=$p[$key];if(!preg_match('/^\d{4}-\d{2}-\d{2}$/',$v)||!checkdate((int)substr($v,5,2),(int)substr($v,8,2),(int)substr($v,0,4)))reply(400,['error'=>'Indica inicio y fecha meta válidos']);}
+ if($p['targetDate']<$p['startDate'])reply(400,['error'=>'La fecha meta no puede ser anterior al inicio']);
+ foreach(['sponsorUserId','processOwnerUserId','cellId'] as $key){$value=$raw[$key]??null;$p[$key]=$value===null||$value===''?null:filter_var($value,FILTER_VALIDATE_INT,['options'=>['min_range'=>1]]);if($p[$key]===false)reply(400,['error'=>'Responsable o célula inválido']);}
+ if(!$p['sponsorUserId']||!$p['processOwnerUserId'])reply(400,['error'=>'Asigna patrocinador y responsable de resultados']);
+ foreach([$p['sponsorUserId'],$p['processOwnerUserId']] as $person){$q=$db->prepare('SELECT id FROM po_users WHERE id=? AND active=1');$q->execute([$person]);if(!$q->fetchColumn())reply(400,['error'=>'El responsable seleccionado no está activo']);}
+ if($p['cellId']){$q=$db->prepare("SELECT id FROM po_cells_v12 WHERE id=? AND status <> 'Archivada'");$q->execute([$p['cellId']]);if(!$q->fetchColumn())reply(400,['error'=>'La célula no está disponible']);}
+ if($status!=='Planeada'){
+  if(!$id)reply(400,['error'=>'Crea primero la macroiniciativa como Planeada y registra sus KPIs antes de activarla']);
+  if($p['resources']===''||$p['risks']==='')reply(400,['error'=>'Antes de activar, documenta recursos y riesgos o indica por qué no aplican']);
+  $q=$db->prepare('SELECT COUNT(*) FROM po_initiative_kpis_v12 WHERE initiative_id=? AND baseline IS NOT NULL AND target IS NOT NULL AND target<>baseline');$q->execute([$id]);if(!(int)$q->fetchColumn())reply(409,['error'=>'Antes de activar, registra al menos un KPI con línea base y meta']);
+ }
+ return $p;
+}
+function macroProfileWrite(PDO $db,int $id,array $p):void {
+ $q=$db->prepare('SELECT baseline_plan FROM po_initiative_details_v12 WHERE initiative_id=?');$q->execute([$id]);$before=$q->fetchColumn();$stored=$before?json_decode((string)$before,true):[];
+ if(!is_array($stored))$stored=['legacyBaselinePlan'=>(string)$before];$stored['macroProfileV1']=$p;$baseline=json_encode($stored,JSON_UNESCAPED_UNICODE|JSON_THROW_ON_ERROR);
+ if(strlen($baseline)>60000)throw new InvalidArgumentException('La ficha supera el tamaño permitido; reduce los textos');
+ $values=[$p['code']?:null,$p['department'],$p['problemStatement'],$p['expectedBenefit'],$p['scopeText'],$p['priority'],$p['cellId'],$p['sponsorUserId'],$p['processOwnerUserId'],$p['startDate'],$p['targetDate'],$baseline];
+ $q=$db->prepare('SELECT initiative_id FROM po_initiative_details_v12 WHERE initiative_id=?');$q->execute([$id]);
+ if($q->fetchColumn()){
+  $q=$db->prepare('UPDATE po_initiative_details_v12 SET code=?,department=?,problem_statement=?,expected_benefit=?,scope_text=?,priority=?,cell_id=?,sponsor_user_id=?,process_owner_user_id=?,start_date=?,target_date=?,baseline_plan=? WHERE initiative_id=?');$q->execute([...$values,$id]);
+ }else{
+  $q=$db->prepare("INSERT INTO po_initiative_details_v12 (initiative_id,code,department,problem_statement,expected_benefit,scope_text,priority,cell_id,sponsor_user_id,process_owner_user_id,start_date,target_date,baseline_plan,initiative_level) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,'Corporativa')");$q->execute([$id,...$values]);
+ }
+
+}
+
 if($action==='initiatives' && $method==='GET'){
  $rows=$db->query('SELECT i.id,i.title,i.objective,i.status,i.owner_id,i.created_at, GROUP_CONCAT(l.project_id SEPARATOR ",") project_ids FROM po_initiatives i LEFT JOIN po_initiative_projects l ON l.initiative_id=i.id GROUP BY i.id ORDER BY i.created_at DESC')->fetchAll();
+ $details=$db->query('SELECT * FROM po_initiative_details_v12')->fetchAll();$byId=[];foreach($details as $detail)$byId[(string)$detail['initiative_id']]=$detail;
+ foreach($rows as &$row){$row['profile']=macroProfileRead($byId[(string)$row['id']]??[]);}unset($row);
  reply(200,['initiatives'=>$rows]);
 }
 if($action==='initiatives' && $method==='POST'){
  csrf();if(level($role)<3)reply(403,['error'=>'Permiso insuficiente']);$d=input();$title=trim((string)($d['title']??''));$objective=trim((string)($d['objective']??''));$status=(string)($d['status']??'Planeada');$projects=$d['projectIds']??[];
  if(!$title||strlen($title)>190||!in_array($status,['Planeada','En ejecución','Completada','En riesgo'],true)||!is_array($projects))reply(400,['error'=>'Iniciativa inválida']);
+ $profile=macroProfileValidate($db,$d['profile']??null,$status);if(trim($objective)==='')reply(400,['error'=>'Define el resultado esperado']);
  $db->beginTransaction();
- try{$q=$db->prepare('INSERT INTO po_initiatives(title,objective,status,created_by) VALUES (?,?,?,?)');$q->execute([$title,$objective,$status,$uid]);$id=(int)$db->lastInsertId();
+ try{$q=$db->prepare('INSERT INTO po_initiatives(title,objective,status,created_by) VALUES (?,?,?,?)');$q->execute([$title,$objective,$status,$uid]);$id=(int)$db->lastInsertId();macroProfileWrite($db,$id,$profile);$db->prepare('UPDATE po_initiatives SET owner_id=? WHERE id=?')->execute([$profile['processOwnerUserId'],$id]);
  $link=$db->prepare('INSERT INTO po_initiative_projects(initiative_id,project_id) SELECT ?,id FROM po_projects WHERE id=?');
  foreach(array_unique($projects) as $p){if(is_string($p))$link->execute([$id,$p]);}
  logAction($db,$uid,'create','initiative',(string)$id);$db->commit();reply(201,['id'=>$id]);}
- catch(Throwable $e){$db->rollBack();reply(500,['error'=>'No fue posible crear iniciativa']);}
+ catch(Throwable $e){$db->rollBack();if($e instanceof InvalidArgumentException)reply(400,['error'=>$e->getMessage()]);if($e instanceof PDOException&&$e->getCode()==='23000')reply(409,['error'=>'Código duplicado o relación inválida']);reply(500,['error'=>'No fue posible crear iniciativa']);}
 }
 if($action==='initiatives' && in_array($method,['PUT','DELETE'],true)){
  csrf();if(level($role)<3)reply(403,['error'=>'Permiso insuficiente']);$d=input();$id=(int)($d['id']??0);if($id<1)reply(400,['error'=>'ID inválido']);
@@ -292,11 +385,13 @@ if($action==='initiatives' && in_array($method,['PUT','DELETE'],true)){
  $q=$db->prepare('DELETE FROM po_initiatives WHERE id=?');$q->execute([$id]);logAction($db,$uid,'delete','initiative',(string)$id);reply(200,['ok'=>true]);}
  $title=trim((string)($d['title']??''));$objective=trim((string)($d['objective']??''));$status=(string)($d['status']??'Planeada');$projects=$d['projectIds']??[];
  if(!$title||strlen($title)>190||!in_array($status,['Planeada','En ejecución','Completada','En riesgo'],true)||!is_array($projects))reply(400,['error'=>'Iniciativa inválida']);
+ $profile=array_key_exists('profile',$d)?macroProfileValidate($db,$d['profile'],$status,$id):null;if($profile&&trim($objective)==='')reply(400,['error'=>'Define el resultado esperado']);
+ $exists=$db->prepare('SELECT id FROM po_initiatives WHERE id=?');$exists->execute([$id]);if(!$exists->fetchColumn())reply(404,['error'=>'La macroiniciativa no existe']);
  $db->beginTransaction();
- try{$q=$db->prepare('UPDATE po_initiatives SET title=?,objective=?,status=? WHERE id=?');$q->execute([$title,$objective,$status,$id]);$db->prepare('DELETE FROM po_initiative_projects WHERE initiative_id=?')->execute([$id]);
+ try{$q=$db->prepare('UPDATE po_initiatives SET title=?,objective=?,status=? WHERE id=?');$q->execute([$title,$objective,$status,$id]);if($profile){macroProfileWrite($db,$id,$profile);$db->prepare('UPDATE po_initiatives SET owner_id=? WHERE id=?')->execute([$profile['processOwnerUserId'],$id]);}$db->prepare('DELETE FROM po_initiative_projects WHERE initiative_id=?')->execute([$id]);
  $link=$db->prepare('INSERT INTO po_initiative_projects(initiative_id,project_id) SELECT ?,id FROM po_projects WHERE id=?');foreach(array_unique($projects) as $p){if(is_string($p))$link->execute([$id,$p]);}
  logAction($db,$uid,'update','initiative',(string)$id);$db->commit();reply(200,['ok'=>true]);}
- catch(Throwable $e){$db->rollBack();reply(500,['error'=>'No fue posible actualizar']);}
+ catch(Throwable $e){$db->rollBack();if($e instanceof InvalidArgumentException)reply(400,['error'=>$e->getMessage()]);if($e instanceof PDOException&&$e->getCode()==='23000')reply(409,['error'=>'Código duplicado o relación inválida']);reply(500,['error'=>'No fue posible actualizar']);}
 }
 
 if($action==='governance' && $method==='GET'){
