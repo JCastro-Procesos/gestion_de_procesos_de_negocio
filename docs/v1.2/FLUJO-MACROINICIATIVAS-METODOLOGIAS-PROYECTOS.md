@@ -36,3 +36,25 @@ Publicar mediante workflow nuevo: rama feature/v1.2-bloque3-integracion-proyecto
 6. Confirmar que un perfil sin permiso no edita el catálogo, y que se conservan tareas, bloqueos y evidencias actuales.
 
 Producción permanece sin cambios mientras este PR no se fusione ni se publique allí.
+
+## Portafolio compacto de macroiniciativas
+
+La etapa Macroiniciativas presenta totales, búsqueda, filtro y listado de nombres / estados. El botón Agregar macroiniciativa abre una ficha flotante. Al abrir una fila, la misma ventana reúne Resumen, Actividades, Indicadores y Proyectos. Los indicadores y mediciones disponibles se limitan a la macroiniciativa seleccionada.
+
+La ficha incorpora alineación estratégica, problema, objetivo, beneficio, alcance, exclusiones, área, patrocinador, responsable de resultados, célula, prioridad, fechas, criterios de éxito, plan de medición, recursos, riesgos, dependencias, frecuencia y presupuesto opcional. Los campos son una adaptación de business case de APM y las dimensiones de estrategia / entrega de GOV.UK, proporcional a ProcessOne; no son una obligación normativa:
+- https://www.apm.org.uk/resources/what-is-project-management/what-is-a-business-case/
+- https://www.gov.uk/government/publications/strategy-and-delivery-plan-guidance-mega-projects/strategy-and-delivery-plan-guidance-mega-projects
+
+Una macroiniciativa nueva empieza Planeada. Para pasar a otro estado se requieren recursos, riesgos y un KPI con línea base y meta distintas. No se inventan metas ni presupuestos. Los registros históricos incompletos siguen consultables; completar la ficha es necesario al editarla desde esta vista.
+
+Persistencia: campos base en po_initiatives; perfil en po_initiative_details_v12, con extensiones versionadas dentro de baseline_plan (macroProfileV1). Se conservan el texto previo y la jerarquía existente. La API de arquitectura conserva baseline_plan si el cliente no lo envía. Alta, ficha y vínculos se guardan en una transacción. Los códigos duplicados devuelven conflicto sin modificar otra macroiniciativa. No requiere SQL adicional.
+
+Validación de esta revisión: 50 pruebas de dominio, 5 pruebas DOM locales (listado, apertura / cierre, alta, actividades, selección de metodología y aislamiento de KPIs), TypeScript y build. Las pruebas DOM de apoyo se ejecutan fuera de las dependencias del proyecto. El workflow de calidad verifica además PHP.
+
+Pruebas de aceptación en staging:
+1. Abrir Macroiniciativas: comprobar totales y listado sin fichas expandidas ni formulario inline.
+2. Agregar: validar obligatorios, fechas y responsables; crear Planeada y recargar para comprobar persistencia.
+3. Abrir dos filas distintas y comprobar que sus actividades, indicadores y proyectos no se mezclan.
+4. Editar ficha; comprobar que se conservan vínculos, actividades y jerarquía anterior.
+5. Registrar KPI y medición en Indicadores; completar recursos y riesgos antes de pasar a En ejecución.
+6. Repetir código de otra ficha: debe mostrar conflicto y mantener ambos registros intactos.
