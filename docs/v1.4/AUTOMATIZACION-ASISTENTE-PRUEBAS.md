@@ -57,3 +57,15 @@ El cálculo de carga compara horas pendientes estimadas de tareas activas fechad
 Pruebas de dominio para calendario, fechas, configuración, reglas, capacidad temporal, cierre de pendientes, Gobierno, reactivación y resúmenes. Escenarios DOM para campana/centro, posposición, consultas, reglas, permisos y confirmación de RAID, además de regresión del bloque anterior. PHP prueba preservación de configuración con clientes antiguos y permisos/rangos. CI ejecuta integración existente de Gobierno con MariaDB aislada, validación del paquete y simulación de publicación de todos los módulos.
 
 Producción permanece sin cambios. Revisar esta matriz antes de autorizar integración en main.
+
+## Ajustes de visualización: alertas y Gantt del portafolio
+
+- Prioridades limita la altura de sus resultados y permite desplazamiento vertical independiente, por teclado y rueda. El total, filtros y acciones permanecen fuera de esa lista.
+- KPIs y reportes agrega navegación Dashboard y KPIs / Gantt de proyectos, conservando el dashboard anterior.
+- Pipeline Gantt con proyectos por fila, seis colores por orden de etapa, meses y semanas de calendario reales, corte de hoy, resumen por estado y cierres planificados opcionales. Un cierre planificado no equivale a una aprobación.
+- Filtros propios de Gantt por área, responsable, estado y búsqueda; mes inicial, horizonte de 3/6/12/24 meses y tres escalas. Los intervalos solapados se separan en carriles. Los huecos y fechas fuera del horizonte se conservan, sin convertir etapas en una secuencia ficticia.
+- Detalle accesible mediante clic o teclado con fechas, estado y avance; botón para abrir el proyecto. Registros sin fechas completas o con rangos invertidos se señalan como calidad de datos; no reciben fechas inventadas.
+- Descarga SVG independiente con leyenda, fechas y línea de hoy, sin dependencias externas. Se revisó el render con un caso de muestra que incluye etapas solapadas y cambio de año.
+- No requiere SQL ni cambia proyectos/fechas desde el reporte. Validación local: 75 pruebas de dominio, 22 escenarios DOM y compilación.
+
+Validar en pruebas: desplazamiento de las 39 coincidencias sin alargar toda la página; cambio entre Dashboard/Gantt; filtros; fechas y anchos de etapas; solapamientos; etapas sin fecha; mes actual; intervalo fuera de pantalla; apertura de detalles/proyecto; descarga SVG y persistencia intacta del cronograma original.
