@@ -14,10 +14,12 @@ export function governanceReviewer(i:GovernanceItem,uid:number,role:string):bool
  const level=({admin:5,direccion:4,gerencia:3,especialista:2,ingeniero:1} as Record<string,number>)[role]??0;
  return level>=(i.severity==='Menor'?3:4)&&Number(i.createdBy)!==uid&&Number(i.ownerUserId)!==uid&&(Number(i.approverUserId)===uid||role==='admin');
 }
+export function governanceCandidates(d:GovernanceDraft,creatorId:number,people:GovernancePerson[]):GovernancePerson[]{return people.filter(p=>p.reviewImpacts.includes(d.severity)&&Number(p.id)!==creatorId&&Number(p.id)!==Number(d.ownerUserId));}
 export function governanceFormError(d:GovernanceDraft,creatorId:number,people:GovernancePerson[]):string{
- if(!d.title.trim()||!d.description.trim()||!d.ownerUserId||!d.approverUserId||!d.dueDate)return 'Completa título, justificación, responsable, revisor y fecha compromiso.';
+ if(!d.title.trim()||!d.description.trim()||!d.ownerUserId||!d.dueDate)return 'Completa título, justificación, responsable, revisor y fecha compromiso.';
  if(d.ownerUserId===d.approverUserId||Number(d.approverUserId)===creatorId)return 'El revisor debe ser distinto del creador y del responsable.';
- const reviewer=people.find(p=>Number(p.id)===Number(d.approverUserId));if(!reviewer?.reviewImpacts.includes(d.severity))return 'Selecciona un revisor autorizado para el impacto.';
+ if(!d.approverUserId&&governanceCandidates(d,creatorId,people).length)return 'Selecciona un revisor autorizado para el impacto.';
+ const reviewer=people.find(p=>Number(p.id)===Number(d.approverUserId));if(d.approverUserId&&!reviewer?.reviewImpacts.includes(d.severity))return 'Selecciona un revisor autorizado para el impacto.';
  const date=new Date(d.dueDate+'T12:00:00Z');if(!/^\d{4}-\d{2}-\d{2}$/.test(d.dueDate)||!Number.isFinite(date.getTime())||date.toISOString().slice(0,10)!==d.dueDate)return 'Fecha compromiso inválida.';
  if(d.kind==='Cambio'&&!d.impactSummary.trim())return 'Describe el impacto del cambio en alcance, plazo, costo y riesgo.';
  if(d.kind==='Entregable'&&!d.evidenceUrl.trim())return 'Agrega evidencia del entregable.';

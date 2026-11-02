@@ -56,3 +56,9 @@ Esta rama es para pruebas. No fusionar ni publicar en producción hasta revisar 
 El paquete incluía governance.php y governance_policy.php, pero la copia remota conservaba la lista anterior de módulos y no los enviaba al sitio. Se corrigió la validación PHP y la publicación para utilizar una lista explícita de los siete módulos, verificar su copia y publicar index.php después de sus dependencias. Tres pruebas reproducen la copia en un sitio temporal, comprueban el contenido y los permisos y conservan el controlador previo si falta una dependencia. La interfaz solo anuncia una migración faltante cuando la API lo confirma, no cuando falla su respuesta.
 
 Publicar una ejecución nueva desde la misma rama de pruebas para recoger la corrección. Si el SQL ya se ejecutó correctamente en esa base no es necesario repetirlo.
+
+## Selector de revisor y controles de sesión
+
+El formulario distingue ausencia de revisores de un fallo del selector. Si no existe otra cuenta activa autorizada para el impacto elegido, permite guardar la solicitud como Pendiente de asignar revisor, sin autoaprobación ni ejecución. La API verifica por su cuenta que no haya candidatos antes de aceptar un revisor nulo. Cuando existen candidatos exige seleccionar uno. Posteriormente se edita la ficha para asignarlo antes de aprobar. No agrega usuarios ni cambia permisos automáticamente.
+
+Cerrar sesión se integra en las acciones del encabezado, en el flujo normal del diseño y adaptable a pantallas pequeñas; ya no cubre el botón de ayuda ni las acciones inferiores o de ventanas flotantes. Estos ajustes no requieren SQL adicional.

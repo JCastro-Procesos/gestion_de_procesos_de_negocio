@@ -54,4 +54,14 @@ assert all(e['itemId']==i for e in older['events'])
 # Higher impact requires the selected independent direction reviewer.
 b=draft();b.update(severity='Crítico',kind='Cambio',impactSummary='Alcance nuevo; plazo +3 días; costo sin cambio; riesgo controlado',approverUserId=4)
 request('POST',body=b,status=201);mutate(b['id'],'decide',uid=3,expected=403,**{'status':'Aprobado'});mutate(b['id'],'decide',uid=4,**{'status':'Aprobado'})
+# The only higher-level reviewer is the author or owner: retain the request pending assignment.
+c=draft();c.update(severity='Mayor',ownerUserId=4,approverUserId=None)
+request('POST',uid=5,body=c,status=201)
+assert detail(c['id'])['item']['approverUserId'] is None
+mutate(c['id'],'decide',uid=5,expected=403,**{'status':'Aprobado'})
+request('POST',uid=2,body={**draft(),'approverUserId':None},status=400)
+# Reassign the owner and pick an independent reviewer before approval.
+changed={k:v for k,v in c.items() if k!='id'};changed.update(ownerUserId=6,approverUserId=4)
+mutate(c['id'],'edit',uid=5,**changed)
+mutate(c['id'],'decide',uid=4,**{'status':'Aprobado'})
 print(f'PASS: {checks} PHP/MySQL requests; permissions, stale writes, decisions, return/edit/resubmit, execution, snapshots and paginated history')

@@ -16,10 +16,11 @@ function govForm(PDO $db,array $d,int $creator):array{
  if($kind==='Cambio'&&$impact==='')reply(400,['error'=>'Describe el impacto en alcance, plazo, costo y riesgo del cambio']);
  if($kind==='Entregable'&&$evidence==='')reply(400,['error'=>'El entregable requiere evidencia']);
  govEvidence($evidence);$due=govText($d,'dueDate',10,true);if(!preg_match('/^\d{4}-\d{2}-\d{2}$/',$due)||!checkdate((int)substr($due,5,2),(int)substr($due,8,2),(int)substr($due,0,4)))reply(400,['error'=>'Fecha compromiso inválida']);
- $owner=filter_var($d['ownerUserId']??null,FILTER_VALIDATE_INT,['options'=>['min_range'=>1]]);$approver=filter_var($d['approverUserId']??null,FILTER_VALIDATE_INT,['options'=>['min_range'=>1]]);
- if(!$owner||!$approver||$owner===$approver||$creator===$approver)reply(400,['error'=>'Asigna responsable y revisor diferentes; el creador no puede revisarse a sí mismo']);
- $q=$db->prepare('SELECT id,name,role FROM po_users WHERE active=1 AND id IN (?,?)');$q->execute([$owner,$approver]);$people=[];foreach($q->fetchAll() as $p)$people[(int)$p['id']]=$p;
- if(!isset($people[$owner],$people[$approver])||govLevel($people[$approver]['role'])<govRequiredLevel($severity))reply(400,['error'=>'Responsable o revisor no disponible para este impacto']);
+ $owner=filter_var($d['ownerUserId']??null,FILTER_VALIDATE_INT,['options'=>['min_range'=>1]]);$rawApprover=$d['approverUserId']??null;$approver=($rawApprover===null||$rawApprover==='')?null:filter_var($rawApprover,FILTER_VALIDATE_INT,['options'=>['min_range'=>1]]);
+ if(!$owner||$approver===false||($approver!==null&&($owner===$approver||$creator===$approver)))reply(400,['error'=>'Asigna responsable y revisor diferentes; el creador no puede revisarse a sí mismo']);
+ $rows=$db->query('SELECT id,name,role FROM po_users WHERE active=1')->fetchAll();$people=[];$eligible=[];foreach($rows as $p){$personId=(int)$p['id'];$people[$personId]=$p;if($personId!==$creator&&$personId!==$owner&&govLevel($p['role'])>=govRequiredLevel($severity))$eligible[]=$personId;}
+ if(!isset($people[$owner])||($approver!==null&&!in_array($approver,$eligible,true)))reply(400,['error'=>'Responsable o revisor no disponible para este impacto']);
+ if($approver===null&&count($eligible)>0)reply(400,['error'=>'Selecciona un revisor autorizado para el impacto']);
  $project=govText($d,'projectId',100);if($project!==''){$q=$db->prepare('SELECT id FROM po_projects WHERE id=?');$q->execute([$project]);if(!$q->fetchColumn())reply(400,['error'=>'Proyecto inexistente']);}
  return [$kind,$project?:null,$title,$description,$severity,$people[$owner]['name'],$owner,$approver,$due,$evidence,$impact];
 }
