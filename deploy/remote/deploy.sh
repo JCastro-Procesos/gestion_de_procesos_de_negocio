@@ -30,7 +30,7 @@ if find "$REL" \( -iname 'setup.php' -o -iname 'config.php' -o -iname '.env*' -o
   die "El paquete contiene archivos prohibidos"
 fi
 grep -q 'ProcessOne' "$REL/index.html" || die "Paquete sin index.html de ProcessOne"
-API_MODULES=(cells_v12.php initiative_details_v12.php strategy_v12.php project_strategy_v12.php governance_policy.php governance.php index.php)
+API_MODULES=(automation_policy.php cells_v12.php initiative_details_v12.php strategy_v12.php project_strategy_v12.php governance_policy.php governance.php index.php)
 for module in "${API_MODULES[@]}"; do
   [ -s "$REL/api/$module" ] || die "Falta $module en el paquete"
   php -l "$REL/api/$module" >/dev/null || die "Error de sintaxis PHP en $module"

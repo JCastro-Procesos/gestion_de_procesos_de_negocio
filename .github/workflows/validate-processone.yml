@@ -37,6 +37,8 @@ jobs:
         run: pnpm exec vite build --config vite.hostinger.config.ts
       - name: Validar sintaxis PHP
         run: |
+          php -l server/api/automation_policy.php
+          php server/tests/automation_policy_test.php
           php -l server/api/governance.php
           php -l server/api/governance_policy.php
           php server/tests/governance_policy_test.php
