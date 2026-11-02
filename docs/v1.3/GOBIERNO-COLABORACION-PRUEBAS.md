@@ -50,3 +50,9 @@ Pruebas TypeScript de bandejas y validaciones, pruebas PHP de reglas de autoriza
 ## Producción y reversión
 
 Esta rama es para pruebas. No fusionar ni publicar en producción hasta revisar los casos anteriores. Al aprobarse, la migración aditiva se aplica también en producción después de respaldo y antes del despliegue. Para revertir la aplicación, restaurar el paquete anterior mediante el flujo existente; conservar ambas tablas y su historial, sin DROP ni borrado de decisiones.
+
+## Corrección del primer despliegue de pruebas
+
+El paquete incluía governance.php y governance_policy.php, pero la copia remota conservaba la lista anterior de módulos y no los enviaba al sitio. Se corrigió la validación PHP y la publicación para utilizar una lista explícita de los siete módulos, verificar su copia y publicar index.php después de sus dependencias. Tres pruebas reproducen la copia en un sitio temporal, comprueban el contenido y los permisos y conservan el controlador previo si falta una dependencia. La interfaz solo anuncia una migración faltante cuando la API lo confirma, no cuando falla su respuesta.
+
+Publicar una ejecución nueva desde la misma rama de pruebas para recoger la corrección. Si el SQL ya se ejecutó correctamente en esa base no es necesario repetirlo.

@@ -50,6 +50,8 @@ jobs:
         run: |
           for f in deploy/*.sh deploy/remote/*.sh; do bash -n "$f"; done
           shellcheck -S error deploy/*.sh deploy/remote/*.sh
+      - name: Verificar copia de módulos API en servidor
+        run: python3 deploy/tests/test_api_publication.py
       - name: Armar y verificar paquete (exclusiones y secretos)
         run: bash deploy/build-package.sh "validacion-${GITHUB_RUN_NUMBER}"
       - name: Guardar compilación para revisión (no publicar)
