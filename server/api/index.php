@@ -183,6 +183,7 @@ if($action==='workspace' && $method==='GET'){
  reply(200,['workspace'=>$payload,'revision'=>$w?(int)$w['revision']:0]);
 }
 if($action==='workspace' && $method==='PUT'){
+ require_once __DIR__.'/automation_policy.php';
  csrf();if(level($role)<2)reply(403,['error'=>'Permiso insuficiente para modificar el espacio compartido']);$d=input();$payload=$d['workspace']??null;$rev=$d['revision']??null;
  if(!is_array($payload)||!is_int($rev)||!isset($payload['projects'],$payload['tasks'],$payload['members'])||!is_array($payload['projects'])||!is_array($payload['tasks']))reply(400,['error'=>'Datos inválidos']);
  if(level($role)<3){
@@ -239,6 +240,8 @@ if($action==='workspace' && $method==='PUT'){
  $priorPayload=$db->query("SELECT payload FROM po_workspace WHERE id='main'")->fetchColumn();$priorPayload=$priorPayload?json_decode((string)$priorPayload,true):[];
  // Un cliente antiguo que no conoce el catálogo no puede borrarlo al guardar otro cambio.
  if(!array_key_exists('alignmentCatalog',$payload)&&isset($priorPayload['alignmentCatalog']))$payload['alignmentCatalog']=$priorPayload['alignmentCatalog'];
+ try{$payload=automationSettingsWrite($payload,$priorPayload,level($role));}catch(InvalidArgumentException $e){$db->rollBack();reply(400,['error'=>$e->getMessage()]);}catch(DomainException $e){$db->rollBack();reply(403,['error'=>$e->getMessage()]);}
+ $automationChanged=json_encode($payload['automationSettings']??null)!==json_encode($priorPayload['automationSettings']??null);
  $catalogChanged=json_encode($payload['alignmentCatalog']??null)!==json_encode($priorPayload['alignmentCatalog']??null);
  if($catalogChanged&&level($role)<3){$db->rollBack();reply(403,['error'=>'Solo Gerencia, Dirección o Administración pueden editar el catálogo de metodologías y macroiniciativas']);}
  $priorProjectIds=[];foreach(($priorPayload['projects']??[]) as $p)if(is_array($p)&&isset($p['id']))$priorProjectIds[(string)$p['id']]=true;
@@ -267,6 +270,7 @@ if($action==='workspace' && $method==='PUT'){
  }
  if($old){$q=$db->prepare("UPDATE po_workspace SET payload=?,revision=revision+1,updated_by=? WHERE id='main'");$q->execute([$json,$uid]);}
  else{$q=$db->prepare("INSERT INTO po_workspace(id,payload,revision,updated_by) VALUES ('main',?,1,?)");$q->execute([$json,$uid]);}
+ if($automationChanged)logAction($db,$uid,'update','automation_settings','main');
  if($catalogChanged)logAction($db,$uid,'update','alignment_catalog','main');
  logAction($db,$uid,'update','workspace','main');$db->commit();reply(200,['revision'=>$current+1]);
  }catch(Throwable $e){if($db->inTransaction())$db->rollBack();reply(500,['error'=>'No fue posible guardar']);}

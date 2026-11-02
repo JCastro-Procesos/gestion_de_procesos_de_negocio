@@ -11,10 +11,10 @@ const newId = (prefix: string) => `${prefix}-${crypto.randomUUID()}`;
 const today = () => new Date().toISOString().slice(0,10);
 const hoursLabel = (seconds: number) => `${Math.floor(seconds / 3600).toString().padStart(2, '0')}:${Math.floor((seconds % 3600) / 60).toString().padStart(2, '0')}:${(seconds % 60).toString().padStart(2, '0')}`;
 
-export function TasksPage({ workspace, onSaveTask, onDeleteTask, onToggleSubtask, onTimer, now, initialProjectId, initialStageId, clearInitialSelection, toast }: {
+export function TasksPage({ workspace, onSaveTask, onDeleteTask, onToggleSubtask, onTimer, now, initialTaskId, initialProjectId, initialStageId, clearInitialSelection, toast }: {
   workspace: Workspace; onSaveTask: (task: Task, isNew: boolean) => void; onDeleteTask: (id: string) => void;
   onToggleSubtask: (taskId: string, subtaskId: string) => void; onTimer: (task: Task) => void; now: number;
-  initialProjectId?: string; initialStageId?: string; clearInitialSelection: () => void; toast: (message: string) => void;
+  initialTaskId?: string; initialProjectId?: string; initialStageId?: string; clearInitialSelection: () => void; toast: (message: string) => void;
 }) {
   const [view, setView] = useState<'table' | 'kanban'>('table');
   const [search, setSearch] = useState('');
@@ -30,6 +30,7 @@ export function TasksPage({ workspace, onSaveTask, onDeleteTask, onToggleSubtask
     if (initialProjectId) { setProjectFilter(initialProjectId); setDraftContext({ projectId: initialProjectId, stageId: initialStageId }); setEditing('new'); clearInitialSelection(); }
   }, [initialProjectId, clearInitialSelection]);
 
+  useEffect(()=>{if(initialTaskId){const task=workspace.tasks.find(t=>t.id===initialTaskId);if(task){setProjectFilter(task.projectId);setEditing(task);setDraftContext(null)}else toast('La tarea ya no está disponible.');clearInitialSelection()}},[initialTaskId,workspace.tasks,clearInitialSelection,toast]);
   const filtered = useMemo(() => workspace.tasks.filter((task) => {
     const project = workspace.projects.find((item) => item.id === task.projectId);
     const searchMatch = `${task.title} ${task.description} ${project?.name || ''}`.toLowerCase().includes(search.toLowerCase());
@@ -70,7 +71,7 @@ function TaskKanbanCard({ task, workspace, now, onDragStart, onEdit, onTimer, on
   return <article className="kanban-card" draggable onDragStart={(event) => { onDragStart(); event.dataTransfer.setData('text/plain', task.id); }}><div className="kanban-card-top"><PriorityBadge value={task.priority}/><button className="icon-button small-icon-button" onClick={onEdit}><MoreHorizontal size={16}/></button></div><button className="kanban-task-title" onClick={onEdit}>{task.title}</button><small className="kanban-project">{project?.name} · {stage?.name || 'Sin etapa'}</small>{task.description && <p>{task.description}</p>}{task.subtasks.length > 0 && <div className="kanban-subtasks">{task.subtasks.slice(0,3).map((subtask) => <button key={subtask.id} className={subtask.done ? 'subtask-done' : ''} onClick={() => onToggleSubtask(subtask.id)}>{subtask.done ? <CheckSquare2 size={12}/> : <Square size={12}/>}<span>{subtask.title}</span></button>)}<div><ProgressBar value={task.subtasks.length ? task.subtasks.filter((item) => item.done).length / task.subtasks.length * 100 : 0}/><small>{task.subtasks.filter((item) => item.done).length}/{task.subtasks.length}</small></div></div>}<div className="kanban-card-bottom"><span className="member-inline">{member && <Avatar name={member.name} color={member.color} size="sm"/>}<small>{member?.name || 'Sin asignar'}</small></span><span className={dueDateOverdue(task.dueDate,task.status) ? 'text-danger' : 'kanban-due'}>{dateLabel(task.dueDate)}</span></div><div className="kanban-card-footer"><span className="kanban-hours"><Clock3 size={12}/>{task.actualHours.toFixed(1)} / {task.estimatedHours.toFixed(1)} h</span><button className="kanban-timer" onClick={onTimer}>{task.timerStartedAt ? <><Pause size={12}/>{hoursLabel(Math.max(0,Math.floor((now-new Date(task.timerStartedAt).getTime())/1000)))}</> : <><Play size={12}/> Iniciar</>}</button><select aria-label="Cambiar estado" value={task.status} onChange={(event) => onStatus(event.target.value as TaskStatus)}>{STATUSES.map((status) => <option key={status}>{status}</option>)}</select></div></article>;
 }
 
-function TaskEditor({ open, task, workspace, initialProjectId, initialStageId, onClose, onSave }: { open: boolean; task: Task | null; workspace: Workspace; initialProjectId?: string; initialStageId?: string; onClose: () => void; onSave: (task: Task) => void }) {
+function TaskEditor({ open, task, workspace, initialProjectId, initialStageId, onClose, onSave }: { open: boolean; task: Task | null; workspace: Workspace; initialTaskId?: string; initialProjectId?: string; initialStageId?: string; onClose: () => void; onSave: (task: Task) => void }) {
   const fresh = (): Task => ({ id: newId('task'), projectId: initialProjectId || workspace.projects[0]?.id || '', stageId: initialStageId || '', title: '', description: '', assigneeId: '', status: 'Por Hacer', priority: 'Media', estimatedHours: 2, actualHours: 0, startDate: today(), dueDate: '', subtasks: [] });
   const [form, setForm] = useState<Task>(task ? structuredClone(task) : fresh());
   const [subtaskText, setSubtaskText] = useState(task?.subtasks.map((item) => item.title).join('\n') || '');
