@@ -1,4 +1,6 @@
-import { useEffect, useState, type FormEvent, type ReactNode } from 'react';
+import {createPortal} from 'react-dom';
+import {useDialogBehavior} from './useDialogBehavior';
+import { useEffect, useState, useRef, useId, type FormEvent, type ReactNode } from 'react';
 import { X, Check, AlertTriangle, Info } from 'lucide-react';
 import type { Semaforo, StageStatus, TaskPriority, TaskStatus } from '../domain/model';
 
@@ -22,15 +24,10 @@ export function Avatar({ name, color = '#5367d8', size = 'md' }: { name: string;
 export function ProgressBar({ value, color }: { value: number; color?: string }) { return <div className="progress-track"><span style={{ width: `${Math.min(100, Math.max(0, value))}%`, background: color }} /></div>; }
 export function EmptyState({ title, text, action }: { title: string; text: string; action?: ReactNode }) { return <div className="empty-state"><span className="empty-icon"><Info size={18} /></span><b>{title}</b><p>{text}</p>{action}</div>; }
 export function Modal({ title, subtitle, open, onClose, children, size = 'md' }: { title: string; subtitle?: string; open: boolean; onClose: () => void; children: ReactNode; size?: 'md' | 'lg' | 'xl' }) {
-  useEffect(() => {
-    if (!open) return;
-    const onKey = (event: KeyboardEvent) => { if (event.key === 'Escape') onClose(); };
-    window.addEventListener('keydown', onKey);
-    document.body.style.overflow = 'hidden';
-    return () => { window.removeEventListener('keydown', onKey); document.body.style.overflow = ''; };
-  }, [open, onClose]);
+  const ref=useRef<HTMLElement>(null),titleId=useId(),descriptionId=useId();
+  useDialogBehavior(ref,open,onClose);
   if (!open) return null;
-  return <div className="modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}><section className={`modal modal-${size}`} role="dialog" aria-modal="true" aria-label={title}><header className="modal-head"><div><h2>{title}</h2>{subtitle && <p>{subtitle}</p>}</div><button type="button" className="icon-button" onClick={onClose} aria-label="Cerrar"><X size={18} /></button></header><div className="modal-body">{children}</div></section></div>;
+  return createPortal(<div className="modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}><section ref={ref} tabIndex={-1} className={`modal modal-${size}`} role="dialog" aria-modal="true" aria-labelledby={titleId} aria-describedby={subtitle?descriptionId:undefined}><header className="modal-head"><div><h2 id={titleId}>{title}</h2>{subtitle && <p id={descriptionId}>{subtitle}</p>}</div><button type="button" className="icon-button" onClick={onClose} aria-label="Cerrar"><X size={18} aria-hidden="true"/></button></header><div className="modal-body">{children}</div></section></div>,document.body);
 }
 export function FormField({ label, children, hint, className = '' }: { label: string; children: ReactNode; hint?: string; className?: string }) { return <label className={`form-field ${className}`}><span>{label}</span>{children}{hint && <small>{hint}</small>}</label>; }
 export function TextInput(props: React.InputHTMLAttributes<HTMLInputElement>) { return <input className="input" {...props} />; }
@@ -40,9 +37,9 @@ export function Button({ children, variant = 'secondary', className = '', ...pro
 export function Toast({ message, onClose }: { message: string; onClose: () => void }) {
   useEffect(() => { if (!message) return; const timer = window.setTimeout(onClose, 3800); return () => window.clearTimeout(timer); }, [message, onClose]);
   if (!message) return null;
-  return <div className="toast"><span className="toast-icon"><Check size={16} /></span><span>{message}</span><button onClick={onClose} aria-label="Cerrar"><X size={15} /></button></div>;
+  return <div className="toast" role="status" aria-live="polite" aria-atomic="true"><span className="toast-icon"><Check size={16} /></span><span>{message}</span><button onClick={onClose} aria-label="Cerrar"><X size={15} /></button></div>;
 }
-export function ErrorBanner({ text }: { text: string }) { return text ? <div className="error-banner"><AlertTriangle size={17} /><span>{text}</span></div> : null; }
+export function ErrorBanner({ text }: { text: string }) { return text ? <div className="error-banner" role="alert"><AlertTriangle size={17} /><span>{text}</span></div> : null; }
 export function FieldGrid({ children }: { children: ReactNode }) { return <div className="form-grid">{children}</div>; }
 export function useFormState<T>(initial: T) { return useState<T>(initial); }
 export type Submit = (event: FormEvent<HTMLFormElement>) => void;
