@@ -1,8 +1,8 @@
 import type { Workspace } from '../domain/model';
 export type CurrentUser={id:number;name:string;email:string;role:'admin'|'direccion'|'gerencia'|'especialista'|'ingeniero';active:number;avatar_animal?:string;mustChangePassword?:boolean};
 let csrf='';
-export async function api<T>(action:string,method:'GET'|'POST'|'PUT'|'DELETE'='GET',body?:unknown):Promise<T>{
- const response=await fetch('/api/index.php?action='+encodeURIComponent(action),{
+export async function api<T>(action:string,method:'GET'|'POST'|'PUT'|'DELETE'='GET',body?:unknown,query?:Record<string,string|number>):Promise<T>{
+ const response=await fetch('/api/index.php?action='+encodeURIComponent(action)+(query?'&'+new URLSearchParams(Object.entries(query).map(([key,value])=>[key,String(value)])).toString():''),{
  method,credentials:'same-origin',cache:'no-store',
  headers:{...(method!=='GET'?{'Content-Type':'application/json','X-CSRF-Token':csrf}:{})},
  ...(body===undefined?{}:{body:JSON.stringify(body)})
