@@ -37,6 +37,9 @@ jobs:
         run: pnpm exec vite build --config vite.hostinger.config.ts
       - name: Validar sintaxis PHP
         run: |
+          php -l server/api/governance.php
+          php -l server/api/governance_policy.php
+          php server/tests/governance_policy_test.php
           php -l server/api/index.php
           php -l server/api/cells_v12.php
           php -l server/api/initiative_details_v12.php
@@ -47,6 +50,8 @@ jobs:
         run: |
           for f in deploy/*.sh deploy/remote/*.sh; do bash -n "$f"; done
           shellcheck -S error deploy/*.sh deploy/remote/*.sh
+      - name: Verificar copia de módulos API en servidor
+        run: python3 deploy/tests/test_api_publication.py
       - name: Armar y verificar paquete (exclusiones y secretos)
         run: bash deploy/build-package.sh "validacion-${GITHUB_RUN_NUMBER}"
       - name: Guardar compilación para revisión (no publicar)
@@ -55,3 +60,28 @@ jobs:
           name: processone-preview-sin-publicar
           path: dist-hostinger/
           retention-days: 7
+
+
+  governance-integration:
+    runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mariadb:11.4
+        env:
+          MARIADB_ROOT_PASSWORD: processone-test-only
+          MARIADB_DATABASE: processone_governance_test
+        ports:
+          - 33306:3306
+        options: >-
+          --health-cmd="healthcheck.sh --connect --innodb_initialized"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Probar ciclo de Gobierno en una base aislada
+        env:
+          GOV_TEST_DSN: mysql:host=127.0.0.1;port=33306;dbname=processone_governance_test;charset=utf8mb4
+          GOV_TEST_USER: root
+          GOV_TEST_PASSWORD: processone-test-only
+        run: python3 server/tests/governance_integration.py

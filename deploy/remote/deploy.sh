@@ -30,15 +30,11 @@ if find "$REL" \( -iname 'setup.php' -o -iname 'config.php' -o -iname '.env*' -o
   die "El paquete contiene archivos prohibidos"
 fi
 grep -q 'ProcessOne' "$REL/index.html" || die "Paquete sin index.html de ProcessOne"
-php -l "$REL/api/index.php" >/dev/null || die "Error de sintaxis PHP en el servidor"
-[ -s "$REL/api/cells_v12.php" ] || die "Falta cells_v12.php en el paquete"
-php -l "$REL/api/cells_v12.php" >/dev/null || die "Error de sintaxis PHP en cells_v12.php"
-[ -s "$REL/api/initiative_details_v12.php" ] || die "Falta initiative_details_v12.php en el paquete"
-php -l "$REL/api/initiative_details_v12.php" >/dev/null || die "Error de sintaxis PHP en initiative_details_v12.php"
-[ -s "$REL/api/strategy_v12.php" ] || die "Falta strategy_v12.php"
-php -l "$REL/api/strategy_v12.php" >/dev/null || die "Error de sintaxis PHP en strategy_v12.php"
-[ -s "$REL/api/project_strategy_v12.php" ] || die "Falta project_strategy_v12.php"
-php -l "$REL/api/project_strategy_v12.php" >/dev/null || die "Error de sintaxis PHP en project_strategy_v12.php"
+API_MODULES=(cells_v12.php initiative_details_v12.php strategy_v12.php project_strategy_v12.php governance_policy.php governance.php index.php)
+for module in "${API_MODULES[@]}"; do
+  [ -s "$REL/api/$module" ] || die "Falta $module en el paquete"
+  php -l "$REL/api/$module" >/dev/null || die "Error de sintaxis PHP en $module"
+done
 CFG="$(po_config_path "$PO_TARGET" "$REL/api/index.php")"
 [ -n "$CFG" ] && [ -f "$CFG" ] || die "La nueva API apunta a una configuración inexistente: $CFG"
 case "$CFG" in "$HOME"/domains/*) die "La configuración no debe estar dentro de domains";; esac
@@ -73,13 +69,17 @@ copy() { if command -v rsync >/dev/null 2>&1; then rsync -a --checksum "$@"; els
 mkdir -p "$PO_TARGET/assets" "$PO_TARGET/api"
 [ -d "$REL/assets" ] && copy "$REL/assets/." "$PO_TARGET/assets/"
 for f in "$REL"/*.svg "$REL"/manus-routes.json "$REL"/robots.txt; do if [ -f "$f" ]; then copy "$f" "$PO_TARGET/"; fi; done
-copy "$REL/api/index.php" "$PO_TARGET/api/index.php"
-copy "$REL/api/cells_v12.php" "$PO_TARGET/api/cells_v12.php"
-copy "$REL/api/initiative_details_v12.php" "$PO_TARGET/api/initiative_details_v12.php"
-copy "$REL/api/strategy_v12.php" "$PO_TARGET/api/strategy_v12.php"
-copy "$REL/api/project_strategy_v12.php" "$PO_TARGET/api/project_strategy_v12.php"
-[ -s "$PO_TARGET/api/initiative_details_v12.php" ] || die "No se publicó initiative_details_v12.php"
-[ -s "$PO_TARGET/api/cells_v12.php" ] || die "No se publicó cells_v12.php"
+# API_PUBLICATION_BEGIN
+# Comprobar dependencias antes de cambiar el controlador; index.php se copia al final.
+for module in "${API_MODULES[@]}"; do
+  [ -s "$REL/api/$module" ] || die "Falta $module antes de publicar"
+done
+for module in "${API_MODULES[@]}"; do
+  copy "$REL/api/$module" "$PO_TARGET/api/$module"
+  chmod 644 "$PO_TARGET/api/$module"
+  cmp -s "$REL/api/$module" "$PO_TARGET/api/$module" || die "No se publicó correctamente $module"
+done
+# API_PUBLICATION_END
 copy "$REL/.htaccess" "$PO_TARGET/.htaccess"
 copy "$REL/version.json" "$PO_TARGET/version.json"
 copy "$REL/index.html" "$PO_TARGET/index.html"
@@ -100,3 +100,4 @@ po_prune "$PO_BACKUPS" "db-${DBNAME}-*.sql.gz" "$PO_KEEP_BACKUPS"
 po_prune "$PO_BASE/releases" '*' "$PO_KEEP_RELEASES"
 rm -f -- "$PKG" "$PKG.sha256"
 log "6/6 Historial actualizado. Respaldo para reversión: $(basename "$FILES_BK")"
+
