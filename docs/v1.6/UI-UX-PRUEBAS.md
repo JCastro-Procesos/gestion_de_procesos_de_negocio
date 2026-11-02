@@ -24,3 +24,14 @@ Controles compartidos más grandes; jerarquía y notas más legibles; bordes de 
 Pruebas de interfaz local: foco y retorno en StrictMode, navegación circular de Tab, ventanas anidadas/Escape, captura de foco exterior, menú móvil/selección y transición a escritorio. Ejecutadas junto con los escenarios previos de alineación, gobierno, sesión, automatización, Gantt y validación. Pruebas del dominio y compilación se ejecutan por separado.
 
 El navegador remoto de revisión no alcanza el servidor local (conexión rechazada). La validación DOM no comprueba geometría visual; completar los puntos de tamaños, contraste y superposiciones sobre la publicación de pruebas antes de autorizar producción. No se reclama una auditoría completa WCAG.
+
+## Ajustes de tarjetas y reporte Gantt
+
+- [ ] Pasar mouse por métricas de proyectos, opciones de metodología, listas de macroiniciativas, pestañas y resultados de búsqueda: conservar el fondo base, con realce de borde/sombra; no rellenar de azul por hover. La opción seleccionada mantiene su identificación y el foco del teclado sigue visible.
+- [ ] Filtrar Gantt por Metodología, combinado con área, responsable y estado. Comparar con los proyectos del catálogo actual. Ver nombre de metodología en la fila y completo al abrir detalle.
+- [ ] Revisar Proyectos por metodología y sus conteos con los filtros activos. Proyectos sin metodología o con ID fuera del catálogo permanecen visibles y filtrables.
+- [ ] Con una lista larga, desplazar verticalmente dentro del Gantt: calendario permanece arriba y leyenda debajo del área desplazable. Sólo las filas se desplazan verticalmente. Desplazamiento horizontal mantiene meses y barras alineados.
+- [ ] Cambiar horizonte y escala, buscar un proyecto y abrir una etapa; conservar funcionamiento previo.
+- [ ] Descargar SVG después de desplazar la lista: archivo completo con todos los proyectos filtrados, calendario y leyenda, sin recorte de la vista actual.
+
+La fijación del calendario/leyenda corresponde al desplazamiento interno del reporte; no bloquea el desplazamiento normal de toda la página. No se alteran fechas ni clasificaciones guardadas.
