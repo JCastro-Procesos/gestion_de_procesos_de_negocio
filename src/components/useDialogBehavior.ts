@@ -2,8 +2,19 @@ import {useEffect,useRef,type RefObject} from 'react';
 
 const dialogs:HTMLElement[]=[];
 let previousOverflow='';
-const selector='a[href],button:not(:disabled),input:not(:disabled):not([type="hidden"]),select:not(:disabled),textarea:not(:disabled),[tabindex]:not([tabindex="-1"])';
-function focusable(root:HTMLElement){return Array.from(root.querySelectorAll<HTMLElement>(selector)).filter(el=>el.tabIndex>=0&&!el.closest('[hidden],[inert],[aria-hidden="true"]')&&getComputedStyle(el).display!=='none'&&getComputedStyle(el).visibility!=='hidden');}
+const selector='a[href],button:not(:disabled),input:not(:disabled):not([type="hidden"]),select:not(:disabled),textarea:not(:disabled),summary,[contenteditable="true"],[tabindex]:not([tabindex="-1"])';
+function focusable(root:HTMLElement){
+ return Array.from(root.querySelectorAll<HTMLElement>(selector)).filter(el=>{
+  if(el.tabIndex<0&&!(el.matches('summary,[contenteditable="true"]')&&!el.hasAttribute('tabindex')))return false;
+  for(let node:HTMLElement|null=el;node;node=node.parentElement){
+   const style=getComputedStyle(node);
+   if(node.matches('[hidden],[inert],[aria-hidden="true"]')||style.display==='none'||style.visibility==='hidden')return false;
+   if(node instanceof HTMLDetailsElement&&!node.open&&!node.querySelector(':scope > summary')?.contains(el))return false;
+   if(node===root)break;
+  }
+  return true;
+ });
+}
 /** One keyboard/focus owner even when a dialog opens another dialog. */
 export function useDialogBehavior(ref:RefObject<HTMLElement|null>,open:boolean,onClose:()=>void){
  const close=useRef(onClose);close.current=onClose;
