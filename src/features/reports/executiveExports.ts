@@ -6,7 +6,7 @@ const escapeHtml = (s: unknown) => String(s ?? '').replace(/[&<>"']/g, (c) => ({
 export function executiveRows(workspace: Workspace, projectIds?: Set<string>): ExecutiveRow[] {
   return workspace.projects.filter((p) => !projectIds || projectIds.has(p.id)).map((p) => ({
     Proyecto: p.name, Área: p.area, Responsable: workspace.members.find((m) => m.id === p.ownerId)?.name || 'Sin asignar',
-    Metodología: String(p.methodologyId), Estado: p.status, Semáforo: p.semaforo, Avance: projectProgress(p.id, workspace.stages) + '%',
+    Metodología: String(p.methodologyId), Estado: p.status, Semáforo: p.semaforo, Avance: projectProgress(p.id, workspace.stages, p.planType) + '%',
     'Fecha objetivo': p.dueDate, 'Tareas abiertas': workspace.tasks.filter((t) => t.projectId === p.id && t.status !== 'Completado').length,
   }));
 }
@@ -39,7 +39,7 @@ export function weeklyExecutiveSummary(workspace: Workspace, ids?: Set<string>) 
   const risks = workspace.raids.filter((r) => selected.has(r.projectId) && r.status !== 'Cerrado');
   const upcoming = tasks.filter((t) => t.dueDate && t.dueDate >= today && t.dueDate <= next && t.status !== 'Completado').sort((a,b) => a.dueDate.localeCompare(b.dueDate));
   const overdue = lateMilestones(workspace).filter((item) => selected.has(item.project.id));
-  const avg = projects.length ? Math.round(projects.reduce((sum, p) => sum + projectProgress(p.id, workspace.stages), 0) / projects.length) : 0;
+  const avg = projects.length ? Math.round(projects.reduce((sum, p) => sum + projectProgress(p.id, workspace.stages, p.planType), 0) / projects.length) : 0;
   const atRisk = projects.filter((p) => projectIsAtRisk(p, workspace.stages, workspace.raids));
   return { projects, avg, atRisk, risks, upcoming, overdue, today, next, tasks };
 }

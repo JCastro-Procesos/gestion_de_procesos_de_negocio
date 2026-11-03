@@ -37,6 +37,12 @@ jobs:
         run: pnpm exec vite build --config vite.hostinger.config.ts
       - name: Validar sintaxis PHP
         run: |
+          php -l server/api/project_controls_history.php
+          php -l server/api/project_controls_policy.php
+          php -l server/api/project_request_plan.php
+          php -l server/api/project_requests_policy.php
+          php -l server/api/project_requests.php
+          php server/tests/project_trust_policy_test.php
           php -l server/api/automation_policy.php
           php server/tests/automation_policy_test.php
           php -l server/api/governance.php
@@ -87,3 +93,27 @@ jobs:
           GOV_TEST_USER: root
           GOV_TEST_PASSWORD: processone-test-only
         run: python3 server/tests/governance_integration.py
+
+  project-trust-integration:
+    runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mariadb:11.4
+        env:
+          MARIADB_ROOT_PASSWORD: processone-test-only
+          MARIADB_DATABASE: processone_trust_test
+        ports:
+          - 33306:3306
+        options: >-
+          --health-cmd="healthcheck.sh --connect --innodb_initialized"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Probar solicitudes y aprobación atómica en base aislada
+        env:
+          TRUST_TEST_DSN: mysql:host=127.0.0.1;port=33306;dbname=processone_trust_test;charset=utf8mb4
+          TRUST_TEST_USER: root
+          TRUST_TEST_PASSWORD: processone-test-only
+        run: python3 server/tests/project_trust_integration.py

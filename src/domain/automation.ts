@@ -35,7 +35,7 @@ export function automationForecast(w:Workspace,today=localCalendarDate()):Foreca
  if(w.raids.some(r=>r.projectId===p.id&&r.status!=='Cerrado'&&r.severity==='Crítica')){score+=25;reasons.push('RAID crítico abierto (+25)')}
  if(validDate(p.dueDate)&&p.dueDate<today){score+=25;reasons.push('Fecha de proyecto vencida (+25)')}
  if(p.semaforo!=='Verde'){const n=p.semaforo==='Rojo'?20:10;score+=n;reasons.push(`Semáforo ${p.semaforo.toLowerCase()} (+${n})`)}
- score=Math.min(100,score);return {project:p,progress:projectProgress(p.id,w.stages),overdue,remaining:tasks.reduce((n,t)=>n+remaining(t.estimatedHours,t.actualHours),0),score,risk:score>=60?'Alto' as const:score>=25?'Medio' as const:'Bajo' as const,reasons};
+ score=Math.min(100,score);return {project:p,progress:projectProgress(p.id, w.stages, p.planType),overdue,remaining:tasks.reduce((n,t)=>n+remaining(t.estimatedHours,t.actualHours),0),score,risk:score>=60?'Alto' as const:score>=25?'Medio' as const:'Bajo' as const,reasons};
  }).sort((a,b)=>b.score-a.score||a.project.id.localeCompare(b.project.id));}
 export function automationAlerts(w:Workspace,governance:GovernanceItem[]=[],today=localCalendarDate(),settings=automationSettingsFor(w)):FollowUpAlert[]{
  const out:FollowUpAlert[]=[];const active=new Map(w.projects.filter(p=>p.status!=='Completado').map(p=>[p.id,p]));const members=new Set(w.members.map(m=>m.id));

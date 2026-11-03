@@ -1,3 +1,4 @@
+import {projectProgress} from '../../domain/metrics';
 import {useState} from 'react';
 import type {ReactNode} from 'react';
 import type {Workspace} from '../../domain/model';
@@ -16,7 +17,7 @@ export function AlignmentHub({workspace,items,canEdit,onSaveCatalog,onOpenProjec
  const methodName=(id:number)=>catalog.methodologies.find(m=>m.id===id)?.name??'Sin metodología';
  const save=(next:AlignmentCatalog)=>{if(!canEdit)return;onSaveCatalog(next);setNotice('Cambios enviados al espacio compartido. Verifica la sincronización antes de salir.');setEditing(null)};
  const stagesCount=(id:string)=>workspace.stages.filter(s=>s.projectId===id).length;
- const progress=(id:string)=>{const s=workspace.stages.filter(x=>x.projectId===id);return s.length?Math.round(s.reduce((n,x)=>n+x.progress,0)/s.length):0};
+ const progress=(id:string)=>projectProgress(id,workspace.stages,workspace.projects.find(p=>p.id===id)?.planType);
  const steps:{id:Step;title:string;copy:string;count:number}[]=[{id:'macros',title:'Macroiniciativas',copy:'Objetivos, actividades y KPIs',count:items.length},{id:'methods',title:'Metodologías de trabajo',copy:'Cómo trabajar y qué entregar',count:catalog.methodologies.length},{id:'projects',title:'Proyectos',copy:'Área cliente, plan y ejecución',count:workspace.projects.length}];
  return <div className="page-stack"><section className="po-alignment-hero"><div className="po-alignment-title"><div><span className="eyebrow">ALINEACIÓN Y TRAZABILIDAD</span><h1>Metodología e iniciativas</h1><p>Del objetivo estratégico al trabajo y sus resultados. Registra cada nivel y conecta el plan de cada proyecto.</p></div><button className="text-action" onClick={()=>setTab('overview')} aria-pressed={tab==='overview'}>Vista general</button></div><nav className="po-alignment-flow" aria-label="Etapas de alineación">{steps.map((s,i)=><button key={s.id} type="button" aria-label={s.title} className={tab===s.id?'active':''} aria-pressed={tab===s.id} onClick={()=>{setTab(s.id);setEditing(null)}}><span className="po-flow-index">0{i+1}</span><span><strong>{s.title}</strong><small>{s.copy}</small></span><b>{s.count}</b></button>)}</nav><p className="po-flow-note">Macroiniciativa → metodología de trabajo → proyecto → actividades → impacto. Cada proyecto tiene una macroiniciativa principal y un área cliente; ejecución e impacto se miden por separado.</p></section>
  {notice&&<p role="status" className="itm-planning-panel">{notice}</p>}

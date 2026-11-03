@@ -1,5 +1,6 @@
 import type { Workspace } from '../domain/model';
 export type CurrentUser={id:number;name:string;email:string;role:'admin'|'direccion'|'gerencia'|'especialista'|'ingeniero';active:number;avatar_animal?:string;mustChangePassword?:boolean};
+export class ApiError extends Error{constructor(message:string,public status:number){super(message);this.name='ApiError'}}
 let csrf='';
 export async function api<T>(action:string,method:'GET'|'POST'|'PUT'|'DELETE'='GET',body?:unknown,query?:Record<string,string|number>):Promise<T>{
  const response=await fetch('/api/index.php?action='+encodeURIComponent(action)+(query?'&'+new URLSearchParams(Object.entries(query).map(([key,value])=>[key,String(value)])).toString():''),{
@@ -8,7 +9,7 @@ export async function api<T>(action:string,method:'GET'|'POST'|'PUT'|'DELETE'='G
  ...(body===undefined?{}:{body:JSON.stringify(body)})
  });
  const data=await response.json().catch(()=>({error:'Respuesta inválida del servidor'})) as T & {error?:string};
- if(!response.ok)throw new Error(data.error||'Error de comunicación');
+ if(!response.ok)throw new ApiError(data.error||'Error de comunicación',response.status);
  return data;
 }
 export async function login(email:string,password:string){const result=await api<{user:CurrentUser;csrf:string}>('login','POST',{email,password});csrf=result.csrf;return result.user}

@@ -1,0 +1,6 @@
+import {it,expect} from 'vitest';
+import {mergeLegacyControls,controlsFor} from './projectControls';
+import {createEmptyWorkspace} from '../data/storage';
+import type {Project} from './model';
+it('traslada sólo proyectos existentes y conserva registros compartidos y copia local',()=>{const w={...createEmptyWorkspace(),projects:[{id:'p'} as Project],projectControls:{version:1 as const,budgets:{p:{approved:500,hourRate:20,expenses:[]}},planning:{},benefits:[]}};const legacy={budgets:{p:{approved:999,hourRate:0,expenses:[]},missing:{approved:1,hourRate:0,expenses:[]}},planning:{p:{baseline:{}}},benefits:[{id:'b',projectId:'p',name:'B',target:1,actual:0,unit:'%'}]};const before=JSON.stringify(legacy);const next=mergeLegacyControls(w,legacy);expect(next.budgets.p.approved).toBe(500);expect(next.budgets.missing).toBeUndefined();expect(next.planning.p).toBeTruthy();expect(next.benefits).toHaveLength(1);expect(JSON.stringify(legacy)).toBe(before);expect(mergeLegacyControls({...w,projectControls:next},legacy)).toEqual(next)});
+it('espacio antiguo dispone de controles vacíos sin alterar el objeto original',()=>{const w=createEmptyWorkspace();expect(controlsFor(w)).toEqual({version:1,budgets:{},planning:{},benefits:[]});expect(w.projectControls).toBeUndefined()});
