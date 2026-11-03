@@ -1,12 +1,10 @@
+import {officialProjectProgress} from './projectProgress';
 import type { Project, RaidItem, Stage, Task, TeamMember, Workspace } from './model';
 
 const today = () => new Date().toISOString().slice(0, 10);
 const openStatus = (status: string) => !['Completado', 'Completada', 'Cerrado'].includes(status);
 
-export function projectProgress(projectId: string, stages: Stage[]): number {
-  const selected = stages.filter((stage) => stage.projectId === projectId);
-  return selected.length ? Math.round(selected.reduce((total, stage) => total + Math.max(0, Math.min(100, stage.progress)), 0) / selected.length) : 0;
-}
+export function projectProgress(projectId:string,stages:Stage[],planType:Project['planType']='Optimización'):number{return officialProjectProgress(stages.filter(s=>s.projectId===projectId),planType)}
 
 export function lateMilestones(workspace: Workspace): { label: string; project: Project; dueDate: string; ownerId: string }[] {
   const result: { label: string; project: Project; dueDate: string; ownerId: string }[] = [];
@@ -30,7 +28,7 @@ export function projectIsAtRisk(project: Project, stages: Stage[], raids: RaidIt
 
 export function executiveMetrics(workspace: Workspace) {
   const count = workspace.projects.length;
-  const average = count ? Math.round(workspace.projects.reduce((sum, project) => sum + projectProgress(project.id, workspace.stages), 0) / count) : 0;
+  const average = count ? Math.round(workspace.projects.reduce((sum, project) => sum + projectProgress(project.id, workspace.stages, project.planType), 0) / count) : 0;
   const atRisk = workspace.projects.filter((project) => projectIsAtRisk(project, workspace.stages, workspace.raids));
   const overdue = lateMilestones(workspace);
   const critical = workspace.projects.filter((project) => project.semaforo === 'Rojo' || project.status === 'Bloqueado' || workspace.raids.some((raid) => raid.projectId === project.id && raid.status !== 'Cerrado' && raid.severity === 'Crítica'));

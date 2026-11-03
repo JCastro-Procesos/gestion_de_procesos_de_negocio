@@ -1,3 +1,4 @@
+import {PROJECT_TYPE_WEIGHTS,officialProjectProgress} from './projectProgress';
 import type { Methodology, Stage, TeamMember, Workspace, Project } from './model';
 
 export const METHODOLOGIES: Methodology[] = [
@@ -57,11 +58,7 @@ export const CORPORATE_STAGE_BLUEPRINT = [
  {name:'Cierre y resultados',objective:'Medir beneficios, transferir documentación y cerrar formalmente.',gate:'Resultados verificados o desviaciones aceptadas formalmente; transferencia y cierre autorizados.',deliverables:['Informe de resultados y KPIs','Acta de transferencia','Repositorio actualizado','Lecciones y pendientes','Acta de cierre']}
 ] as const;
 export const DEFAULT_STAGE_BLUEPRINT = CORPORATE_STAGE_BLUEPRINT.map(stage=>({name:stage.name,objective:stage.objective,deliverable:stage.deliverables[0]}));
-export const PROJECT_TYPE_WEIGHTS: Record<'Tecnológico'|'Documentación'|'Optimización',number[]> = {
- 'Tecnológico':[10,15,20,15,30,10],
- 'Documentación':[10,30,30,15,10,5],
- 'Optimización':[10,25,25,10,20,10]
-};
+export {PROJECT_TYPE_WEIGHTS} from './projectProgress';
 export const PROJECT_DELIVERABLE_ALIASES: Record<string,Record<string,string>> = {
  'Tecnológico':{'Diseño de solución TO-BE':'Diseño funcional, datos e integraciones','Documentación técnica y operativa':'Requerimientos y especificaciones','Pruebas preliminares':'Prototipos y pruebas funcionales','Solución implementada':'Configuración, migración y puesta en producción','Pruebas operativas y aceptación':'Pruebas UAT y aceptación de usuarios'},
  'Documentación':{'Diseño de solución TO-BE':'Procedimientos y flujos TO-BE','Documentación técnica y operativa':'Manuales, instructivos y formatos','Solución implementada':'Documentos publicados y en uso'},
@@ -80,10 +77,7 @@ export function createStages(projectId:string,startDate:string,dueDate:string,me
  });
 }
 export function weightedProjectProgress(stages:Stage[],type:'Tecnológico'|'Documentación'|'Optimización'='Optimización'):number{
- const ordered=[...stages].sort((a,b)=>a.order-b.order);
- const weights=ordered.length===6?PROJECT_TYPE_WEIGHTS[type]:ordered.map(()=>100/Math.max(1,ordered.length));
- const total=weights.reduce((a,b)=>a+b,0);
- return total?Math.round(ordered.reduce((sum,stage,i)=>sum+weights[i]*(stage.activities.length?stage.activities.reduce((n,a)=>n+(a.status==='Completada'?1:a.status==='En revisión' ? 0.5 : 0),0)/stage.activities.length:stage.status==='Completada'?1:0),0)/total*100):0;
+ return officialProjectProgress(stages,type);
 }
 
 export const methodFor = (id: number) => METHODOLOGIES.find((method) => method.id === id) ?? METHODOLOGIES[1];

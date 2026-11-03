@@ -158,6 +158,8 @@ if($action==='password_change' && $method==='POST'){
  logAction($db,(int)$me['id'],'change_password','user',(string)$me['id']);reply(200,['ok'=>true,'user'=>member($db)]);
 }
 $u=member($db);$uid=(int)$u['id'];$role=$u['role'];
+if($action==='project_controls_history')require __DIR__.'/project_controls_history.php';
+if($action==='project_requests')require __DIR__.'/project_requests.php';
 if($action==='cells_v12') require __DIR__.'/cells_v12.php';
 if($action==='initiative_details_v12') require __DIR__.'/initiative_details_v12.php';
 if(in_array($action,['methodologies_v12','initiative_kpis_v12'],true)) require __DIR__.'/strategy_v12.php';
@@ -184,6 +186,7 @@ if($action==='workspace' && $method==='GET'){
 }
 if($action==='workspace' && $method==='PUT'){
  require_once __DIR__.'/automation_policy.php';
+ require_once __DIR__.'/project_controls_policy.php';
  csrf();if(level($role)<2)reply(403,['error'=>'Permiso insuficiente para modificar el espacio compartido']);$d=input();$payload=$d['workspace']??null;$rev=$d['revision']??null;
  if(!is_array($payload)||!is_int($rev)||!isset($payload['projects'],$payload['tasks'],$payload['members'])||!is_array($payload['projects'])||!is_array($payload['tasks']))reply(400,['error'=>'Datos inválidos']);
  if(level($role)<3){
@@ -240,13 +243,15 @@ if($action==='workspace' && $method==='PUT'){
  $priorPayload=$db->query("SELECT payload FROM po_workspace WHERE id='main'")->fetchColumn();$priorPayload=$priorPayload?json_decode((string)$priorPayload,true):[];
  // Un cliente antiguo que no conoce el catálogo no puede borrarlo al guardar otro cambio.
  if(!array_key_exists('alignmentCatalog',$payload)&&isset($priorPayload['alignmentCatalog']))$payload['alignmentCatalog']=$priorPayload['alignmentCatalog'];
- try{$payload=automationSettingsWrite($payload,$priorPayload,level($role));}catch(InvalidArgumentException $e){$db->rollBack();reply(400,['error'=>$e->getMessage()]);}catch(DomainException $e){$db->rollBack();reply(403,['error'=>$e->getMessage()]);}
+ try{$payload=automationSettingsWrite($payload,$priorPayload,level($role));$payload=controlsWrite($payload,$priorPayload,level($role));}catch(InvalidArgumentException $e){$db->rollBack();reply(400,['error'=>$e->getMessage()]);}catch(DomainException $e){$db->rollBack();reply(403,['error'=>$e->getMessage()]);}
+ $controlsChanged=json_encode($payload['projectControls']??null)!==json_encode($priorPayload['projectControls']??null);
  $automationChanged=json_encode($payload['automationSettings']??null)!==json_encode($priorPayload['automationSettings']??null);
  $catalogChanged=json_encode($payload['alignmentCatalog']??null)!==json_encode($priorPayload['alignmentCatalog']??null);
  if($catalogChanged&&level($role)<3){$db->rollBack();reply(403,['error'=>'Solo Gerencia, Dirección o Administración pueden editar el catálogo de metodologías y macroiniciativas']);}
  $priorProjectIds=[];foreach(($priorPayload['projects']??[]) as $p)if(is_array($p)&&isset($p['id']))$priorProjectIds[(string)$p['id']]=true;
  foreach($payload['projects'] as $p){
   if(!is_array($p)||empty($p['id'])||isset($priorProjectIds[(string)$p['id']]))continue;
+  if(level($role)<3){$db->rollBack();reply(403,['error'=>'Solicita la aprobación de Gerencia, Dirección o Administración para crear un proyecto']);}
   $iid=$p['initiativeId']??null;$mid=$p['methodologyId']??null;
   if(!is_numeric($iid)||(int)$iid<1||!is_numeric($mid)||(int)$mid<1||(int)$mid>5||trim((string)($p['area']??''))===''){$db->rollBack();reply(400,['error'=>'Los proyectos nuevos requieren macroiniciativa principal, metodología y área cliente']);}
   $allowed=$payload['alignmentCatalog']['macroMethodologyIds'][(string)$iid]??[];
@@ -270,6 +275,7 @@ if($action==='workspace' && $method==='PUT'){
  }
  if($old){$q=$db->prepare("UPDATE po_workspace SET payload=?,revision=revision+1,updated_by=? WHERE id='main'");$q->execute([$json,$uid]);}
  else{$q=$db->prepare("INSERT INTO po_workspace(id,payload,revision,updated_by) VALUES ('main',?,1,?)");$q->execute([$json,$uid]);}
+ if($controlsChanged){$db->prepare('INSERT INTO po_project_control_versions(workspace_revision,actor_id,payload) VALUES (?,?,?)')->execute([$current+1,$uid,json_encode($payload['projectControls'],JSON_UNESCAPED_UNICODE|JSON_THROW_ON_ERROR)]);logAction($db,$uid,'update','project_controls','main');}
  if($automationChanged)logAction($db,$uid,'update','automation_settings','main');
  if($catalogChanged)logAction($db,$uid,'update','alignment_catalog','main');
  logAction($db,$uid,'update','workspace','main');$db->commit();reply(200,['revision'=>$current+1]);

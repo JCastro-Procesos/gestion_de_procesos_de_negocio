@@ -1,3 +1,4 @@
+import {projectProgress} from '../../domain/metrics';
 import {useEffect,useState} from 'react';
 import {Modal} from '../../components/ui';
 import {api} from '../../data/processoneApi';
@@ -21,7 +22,7 @@ export function MacroInitiativesPanel({workspace,items,canEdit,onReload,onSaveCa
  useEffect(()=>{api<{users:People[];cells:Cell[]}>('initiative_details_v12').then(r=>{setPeople(r.users);setCells(r.cells)}).catch(e=>setReferenceError(String(e)))},[]);
  const projectIds=(i:MacroInitiative)=>new Set([...(i.project_ids?.split(',')??[]),...workspace.projects.filter(p=>Number(p.initiativeId)===Number(i.id)).map(p=>p.id)]);
  const linked=(i:MacroInitiative)=>workspace.projects.filter(p=>projectIds(i).has(p.id));
- const progress=(id:string)=>{const stages=workspace.stages.filter(s=>s.projectId===id);return stages.length?Math.round(stages.reduce((n,s)=>n+Math.max(0,Math.min(100,s.progress)),0)/stages.length):workspace.projects.find(p=>p.id===id)?.status==='Completado'?100:0};
+ const progress=(id:string)=>projectProgress(id,workspace.stages,workspace.projects.find(p=>p.id===id)?.planType);
  const consolidated=(i:MacroInitiative)=>{const p=linked(i);return p.length?Math.round(p.reduce((n,x)=>n+progress(x.id),0)/p.length):0};
  const close=()=>{if(busy)return;setSelected(null);setCreating(false);setEditing(false);setError('');setNotice('');setActivityEdit(false)};
  const open=(i:MacroInitiative)=>{setSelected(i.id);setTab('Resumen');setError('');setNotice('');setActivityEdit(false)};
