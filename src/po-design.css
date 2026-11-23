@@ -171,3 +171,66 @@
 .view-switch button{min-width:40px;min-height:36px;border:0;border-radius:8px;background:transparent;color:var(--pd-muted);cursor:pointer;display:grid;place-items:center}
 .view-switch button.view-active{background:#fff;color:var(--pd-blue-d);box-shadow:0 1px 4px #102a5c1f}
 .kanban-card,.kanban-column{font-size:13px}
+
+/* ===== Reloj del panel ===== */
+.pd-hero-clock{grid-template-columns:1fr auto!important}
+.pd-clock{display:flex;flex-direction:column;align-items:flex-end;gap:6px;padding:14px 20px;border-radius:16px;background:#ffffff1f;border:1px solid #ffffff40;backdrop-filter:blur(6px);min-width:250px}
+.pd-clock-label,.pd-clock-date{display:inline-flex;align-items:center;gap:6px;font-size:12px;letter-spacing:.06em;font-weight:700;color:#e4efff}
+.pd-clock-date{letter-spacing:0;font-weight:600;font-size:13px}
+.pd-clock-time{font:800 34px/1.1 Manrope,Inter,sans-serif;letter-spacing:-.02em;font-variant-numeric:tabular-nums;color:#fff}
+@media(max-width:900px){.pd-hero-clock{grid-template-columns:1fr!important}.pd-clock{align-items:flex-start;min-width:0}.pd-clock-time{font-size:28px}}
+
+/* ===== Menú lateral por bloques ===== */
+.po-nav{gap:2px}
+.po-nav-group{border-radius:12px;padding:2px 0}
+.po-nav-group+.po-nav-group{margin-top:6px}
+.po-nav-head{display:flex;align-items:center;gap:4px;padding:0 2px 0 0}
+.po-nav-toggle{flex:1;display:flex;align-items:center;gap:7px;background:transparent;border:0;color:#b8cae8;font-size:12px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;padding:9px 10px;border-radius:8px;text-align:left;cursor:pointer}
+.po-nav-toggle:hover{background:#ffffff0f;color:#fff}
+.po-nav-toggle svg{transition:transform .18s}
+.po-nav-group.is-closed .po-nav-toggle svg{transform:rotate(-90deg)}
+.po-nav-dot{width:8px;height:8px;border-radius:50%;background:#59d1d3;margin-left:auto}
+.po-nav-help{width:30px;height:30px;display:grid;place-items:center;border:0;border-radius:8px;background:transparent;color:#a9bde0;cursor:pointer}
+.po-nav-help:hover,.po-nav-help[aria-expanded=true]{background:#ffffff1c;color:#fff}
+.po-nav-helpbox{margin:2px 4px 8px;padding:10px;border-radius:12px;background:#ffffff14;border:1px solid #ffffff26;font-size:12.5px;color:#e3ecfb}
+.po-nav-helpbox p{margin:0 0 8px;line-height:1.45}
+.po-nav-helpbox ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:2px}
+.po-nav-helpbox li button{width:100%;text-align:left;background:transparent;border:0;color:inherit;padding:6px;border-radius:8px;display:flex;flex-direction:column;gap:1px;cursor:pointer}
+.po-nav-helpbox li button:hover{background:#ffffff14}
+.po-nav-helpbox li b{font-size:13px;color:#fff}.po-nav-helpbox li span{font-size:12px;color:#c9d7ee;line-height:1.4}
+.po-nav-body[hidden]{display:none}
+.po-nav-body{display:flex;flex-direction:column;gap:2px}
+.po-nav-sep{height:1px;background:#ffffff1f;margin:8px 10px}
+.po-nav-group:first-child .po-nav-sep{display:none}
+.po-collapse-btn{width:34px;height:34px;display:grid;place-items:center;border-radius:10px;background:#ffffff14;border:1px solid #ffffff26;color:#e6efff;cursor:pointer;flex:none;order:3;margin-left:auto}
+.po-collapse-btn:hover{background:#ffffff24}
+.brand{flex-wrap:nowrap}
+.po-topbar-help{display:inline-flex;align-items:center;gap:6px;height:38px;padding:0 12px;border-radius:10px;background:#fff;border:1px solid #cfd8e8;color:#1565c0;font-weight:700;font-size:13px;cursor:pointer}
+.po-topbar-help:hover{background:#eef5ff;border-color:#9ec1ee}
+
+/* menú contraído (solo iconos) — solo escritorio */
+@media(min-width:721px){
+ .sidebar{transition:width .2s ease}.main-area{transition:margin-left .2s ease}
+ .app-shell.po-collapsed .sidebar{width:78px;padding-left:10px;padding-right:10px;overflow-x:hidden}
+ .app-shell.po-collapsed .main-area{margin-left:78px}
+ .app-shell.po-collapsed .brand{flex-direction:column;gap:10px;padding:4px 0 14px;align-items:center}
+ .app-shell.po-collapsed .brand .po-collapse-btn{order:0;margin:0}
+ .app-shell.po-collapsed .brand-copy,.app-shell.po-collapsed .workspace-switcher>span:nth-child(2),.app-shell.po-collapsed .workspace-switcher>svg,.app-shell.po-collapsed .nav-link span,.app-shell.po-collapsed .sidebar-footer small,.app-shell.po-collapsed .local-status>span:last-child,.app-shell.po-collapsed .sidebar-version,.app-shell.po-collapsed .sidebar-footer>button{display:none}
+ .app-shell.po-collapsed .workspace-switcher{justify-content:center;padding:8px 0}
+ .app-shell.po-collapsed .nav-link{justify-content:center;padding:11px 0;position:relative}
+ .app-shell.po-collapsed .nav-link .nav-count{position:absolute;top:2px;right:6px;min-width:18px;height:18px;font-size:11px;margin:0}
+ .app-shell.po-collapsed .local-status{justify-content:center}
+ .app-shell.po-collapsed .sidebar-footer{padding-left:0;padding-right:0}
+}
+@media(max-width:720px){.po-collapse-btn{display:none}}
+
+/* ajustes tras subir tamaños de letra */
+.brand-copy small{white-space:nowrap;font-size:10px!important;letter-spacing:.1em!important}
+.sidebar .workspace-switcher small{white-space:nowrap;font-size:11px!important;letter-spacing:.08em!important}
+.po-nav-toggle{font-size:12px;letter-spacing:.05em;white-space:nowrap}
+.po-topbar-help span{display:none}.po-topbar-help{width:38px;padding:0;justify-content:center}
+.topbar-actions{flex-wrap:wrap;row-gap:8px}
+.last-sync small{display:none}
+@media(min-width:1700px){.po-topbar-help span{display:inline}.po-topbar-help{width:auto;padding:0 12px}.last-sync small{display:block}}
+.brand-copy{min-width:0;flex:1}
+.brand-copy small{white-space:normal!important;font-size:9.5px!important;letter-spacing:.06em!important;line-height:1.3}
