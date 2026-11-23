@@ -11,7 +11,8 @@ function cleanProjectRequest(array $d,array $w):array{
  $areas=$d['scopeAreas']??[$r['area']];if(!is_array($areas)||count($areas)>50)throw new InvalidArgumentException('Alcance inválido');foreach($areas as $a)if(!controlText($a,120,true))throw new InvalidArgumentException('Área de alcance inválida');$r['scopeAreas']=array_values(array_unique(array_merge([$r['area']],$areas)));
  $r['initiativeId']=$d['initiativeId']??null;$r['methodologyId']=$d['methodologyId']??2;
  if($r['initiativeId']!==null&&(!is_int($r['initiativeId'])||$r['initiativeId']<1))throw new InvalidArgumentException('Macroiniciativa inválida');
- if(!is_int($r['methodologyId'])||$r['methodologyId']<1||$r['methodologyId']>5)throw new InvalidArgumentException('Metodología inválida');
+ if(!is_int($r['methodologyId'])||$r['methodologyId']<0||$r['methodologyId']>5)throw new InvalidArgumentException('Metodología inválida');
+ if($r['initiativeId']!==null&&$r['methodologyId']<1)throw new InvalidArgumentException('Un proyecto con macroiniciativa requiere metodología');
  return $r;
 }
 function requestDecisionAllowed(array $r,int $uid,int $level,int $revision):void{

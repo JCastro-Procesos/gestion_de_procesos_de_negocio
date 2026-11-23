@@ -22,12 +22,12 @@ try{
  requestDecisionAllowed($row,$uid,level($role),$d['revision']);$r=json_decode($row['payload'],true,512,JSON_THROW_ON_ERROR);$projectId=null;
  if($d['decision']==='Aprobada'){
   [$w,$revision]=requestWorkspace($db,true);$r['initiativeId']=$d['initiativeId']??$r['initiativeId'];$r['methodologyId']=$d['methodologyId']??$r['methodologyId'];$r=array_merge($r,cleanProjectRequest($r,$w));
-  if(!is_int($r['initiativeId'])||$r['initiativeId']<1)throw new InvalidArgumentException('Selecciona macroiniciativa principal');
-  $q=$db->prepare('SELECT id FROM po_initiatives WHERE id=?');$q->execute([$r['initiativeId']]);if(!$q->fetchColumn())throw new InvalidArgumentException('Macroiniciativa inexistente');
-  $w['alignmentCatalog']??=requestPlanTemplate()['catalog'];$allowed=$w['alignmentCatalog']['macroMethodologyIds'][(string)$r['initiativeId']]??[];if($allowed&&!in_array($r['methodologyId'],$allowed,true))throw new InvalidArgumentException('Metodología no vinculada a la macroiniciativa');
+  $hasMacro=$r['initiativeId']!==null;
+  if($hasMacro){$q=$db->prepare('SELECT id FROM po_initiatives WHERE id=?');$q->execute([$r['initiativeId']]);if(!$q->fetchColumn())throw new InvalidArgumentException('Macroiniciativa inexistente');}
+  $w['alignmentCatalog']??=requestPlanTemplate()['catalog'];$allowed=$hasMacro?($w['alignmentCatalog']['macroMethodologyIds'][(string)$r['initiativeId']]??[]):[];if($hasMacro&&$allowed&&!in_array($r['methodologyId'],$allowed,true))throw new InvalidArgumentException('Metodología no vinculada a la macroiniciativa');
   $projectId='project-'.bin2hex(random_bytes(16));[$project,$stages]=requestProjectPlan($r,$projectId,$w);array_unshift($w['projects'],$project);$w['stages']=array_merge($w['stages']??[],$stages);$json=json_encode($w,JSON_UNESCAPED_UNICODE|JSON_THROW_ON_ERROR);if(strlen($json)>1500000)throw new InvalidArgumentException('El espacio supera el tamaño permitido');
   $q=$db->prepare('INSERT INTO po_projects(id,name,description,status,payload) VALUES (?,?,?,?,?)');$q->execute([$projectId,$project['name'],$project['description'],$project['status'],json_encode($project,JSON_UNESCAPED_UNICODE|JSON_THROW_ON_ERROR)]);
-  $db->prepare('INSERT INTO po_initiative_projects(initiative_id,project_id) VALUES (?,?)')->execute([$r['initiativeId'],$projectId]);
+  if($hasMacro)$db->prepare('INSERT INTO po_initiative_projects(initiative_id,project_id) VALUES (?,?)')->execute([$r['initiativeId'],$projectId]);
   $db->prepare("UPDATE po_workspace SET payload=?,revision=revision+1,updated_by=? WHERE id='main'")->execute([$json,$uid]);
  }
  $r['history'][]=['operation'=>$d['decision'],'actorId'=>$uid,'at'=>gmdate('c'),'note'=>trim($d['note']),'projectId'=>$projectId];
