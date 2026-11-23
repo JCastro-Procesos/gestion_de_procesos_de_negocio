@@ -18,13 +18,23 @@ PKG="$PO_BASE/incoming/processone-${RELEASE_ID}.tar.gz"
 log "1/6 Paquete recibido y verificado (sha256)."
 
 REL="$PO_BASE/releases/$RELEASE_ID"
-rm -rf -- "$REL"; mkdir -p "$REL"
-tar -xzf "$PKG" -C "$REL"
+# Validar entradas del paquete antes de extraer.
+tar -tzf "$PKG" | while IFS= read -r entry; do
+  case "$entry" in /*|../*|*/../*|*/..|./../*) die "Ruta insegura en paquete";; esac
+done
+if tar -tvzf "$PKG" | grep -Eq '^[lh]'; then die "Enlaces no permitidos en el paquete"; fi
+[ ! -e "$REL" ] || die "Identificador de versión ya existente"
+mkdir -p "$REL"
+tar -xzf "$PKG" -C "$REL" --no-same-owner --no-same-permissions
 if find "$REL" \( -iname 'setup.php' -o -iname 'config.php' -o -iname '.env*' -o -iname '*.sql*' -o -iname '*.pem' -o -iname '*.key' \) | grep -q .; then
   die "El paquete contiene archivos prohibidos"
 fi
 grep -q 'ProcessOne' "$REL/index.html" || die "Paquete sin index.html de ProcessOne"
-php -l "$REL/api/index.php" >/dev/null || die "Error de sintaxis PHP en el servidor"
+API_MODULES=(project_controls_history.php project_controls_policy.php project_request_plan.php project_requests_policy.php project_requests.php automation_policy.php cells_v12.php initiative_details_v12.php strategy_v12.php project_strategy_v12.php governance_policy.php governance.php index.php)
+for module in "${API_MODULES[@]}"; do
+  [ -s "$REL/api/$module" ] || die "Falta $module en el paquete"
+  php -l "$REL/api/$module" >/dev/null || die "Error de sintaxis PHP en $module"
+done
 CFG="$(po_config_path "$PO_TARGET" "$REL/api/index.php")"
 [ -n "$CFG" ] && [ -f "$CFG" ] || die "La nueva API apunta a una configuración inexistente: $CFG"
 case "$CFG" in "$HOME"/domains/*) die "La configuración no debe estar dentro de domains";; esac
@@ -59,11 +69,27 @@ copy() { if command -v rsync >/dev/null 2>&1; then rsync -a --checksum "$@"; els
 mkdir -p "$PO_TARGET/assets" "$PO_TARGET/api"
 [ -d "$REL/assets" ] && copy "$REL/assets/." "$PO_TARGET/assets/"
 for f in "$REL"/*.svg "$REL"/manus-routes.json "$REL"/robots.txt; do if [ -f "$f" ]; then copy "$f" "$PO_TARGET/"; fi; done
-copy "$REL/api/index.php" "$PO_TARGET/api/index.php"
+# API_PUBLICATION_BEGIN
+# Comprobar dependencias antes de cambiar el controlador; index.php se copia al final.
+for module in "${API_MODULES[@]}"; do
+  [ -s "$REL/api/$module" ] || die "Falta $module antes de publicar"
+done
+for module in "${API_MODULES[@]}"; do
+  copy "$REL/api/$module" "$PO_TARGET/api/$module"
+  chmod 644 "$PO_TARGET/api/$module"
+  cmp -s "$REL/api/$module" "$PO_TARGET/api/$module" || die "No se publicó correctamente $module"
+done
+# API_PUBLICATION_END
 copy "$REL/.htaccess" "$PO_TARGET/.htaccess"
 copy "$REL/version.json" "$PO_TARGET/version.json"
 copy "$REL/index.html" "$PO_TARGET/index.html"
-find "$PO_TARGET" -type d -exec chmod 755 {} + ; find "$PO_TARGET" -type f -exec chmod 644 {} +
+# No modificar permisos de archivos ajenos a esta publicación.
+chmod 755 "$PO_TARGET/assets" "$PO_TARGET/api"
+[ ! -d "$REL/assets" ] || ( cd "$REL/assets" && find . -type f -print0 | while IFS= read -r -d "" f; do chmod 644 "$PO_TARGET/assets/$f"; done )
+chmod 644 "$PO_TARGET/api/index.php" "$PO_TARGET/api/cells_v12.php" "$PO_TARGET/api/initiative_details_v12.php" "$PO_TARGET/api/strategy_v12.php" "$PO_TARGET/api/project_strategy_v12.php" "$PO_TARGET/.htaccess" "$PO_TARGET/version.json" "$PO_TARGET/index.html"
+for f in "$REL"/*.svg "$REL"/manus-routes.json "$REL"/robots.txt; do
+  [ ! -f "$f" ] || chmod 644 "$PO_TARGET/$(basename "$f")"
+done
 [ ! -f "$PO_TARGET/api/setup.php" ] || log "AVISO: existe api/setup.php en el servidor (no lo creó este despliegue). Elimínalo manualmente."
 log "5/6 Archivos publicados (sin eliminar archivos existentes)."
 
@@ -74,3 +100,4 @@ po_prune "$PO_BACKUPS" "db-${DBNAME}-*.sql.gz" "$PO_KEEP_BACKUPS"
 po_prune "$PO_BASE/releases" '*' "$PO_KEEP_RELEASES"
 rm -f -- "$PKG" "$PKG.sha256"
 log "6/6 Historial actualizado. Respaldo para reversión: $(basename "$FILES_BK")"
+

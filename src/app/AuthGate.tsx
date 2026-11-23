@@ -44,5 +44,5 @@ export function AuthGate(){
  <button type="submit" disabled={working}>{working?'Procesando…':'Guardar y entrar'}</button>
  <button type="button" onClick={async()=>{try{await logout()}catch{/* sin sesión */}setUser(null);setTempKnown('');}}>Cerrar sesión</button>
  </form></div>;
- return <><div className="po-session-banner"><span>Conectado: <b>{user.name}</b></span><button onClick={async()=>{try{await logout();setUser(null)}catch(e){setError(String(e))}}}>Cerrar sesión</button></div><App/></>;
+ return <App sessionControls={<div className="po-session-banner"><span>Conectado: <b>{user.name}</b></span><button disabled={working} onClick={async()=>{setWorking(true);setError('');try{await logout();setUser(null)}catch(e){setError(String(e))}finally{setWorking(false)}}}>{working?'Cerrando…':'Cerrar sesión'}</button>{error&&<small role="alert">{error}</small>}</div>}/>;
 }

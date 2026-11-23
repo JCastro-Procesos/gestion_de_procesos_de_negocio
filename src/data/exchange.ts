@@ -134,6 +134,7 @@ export function importJson(value: unknown, current: Workspace, mode: 'merge' | '
   const raw = value as Record<string, unknown>;
   if (!Array.isArray(raw.projects)) throw new Error('El respaldo debe incluir un arreglo de proyectos.');
   const base = mode === 'replace' ? createEmptyWorkspace() : structuredClone(current);
+  if(raw.alignmentCatalog && typeof raw.alignmentCatalog==='object') base.alignmentCatalog=structuredClone(raw.alignmentCatalog) as Workspace['alignmentCatalog'];
   const upsert = <T extends { id: string }>(oldItems: T[], newItems: T[] = []) => { const map = new Map(oldItems.map((item) => [item.id, item])); newItems.forEach((item) => { if (item?.id) map.set(item.id, item); }); return [...map.values()]; };
   const incomingMembers = Array.isArray(raw.members) ? raw.members as Workspace['members'] : [];
   base.members = upsert(base.members, incomingMembers);

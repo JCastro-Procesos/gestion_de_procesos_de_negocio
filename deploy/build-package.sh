@@ -37,9 +37,10 @@ EOF
   printf 'User-agent: *\nDisallow: /\n' > release/site/robots.txt
 fi
 
-# API PHP: solo index.php. setup.php NUNCA se distribuye.
+# API PHP: publicar únicamente los módulos explícitamente autorizados.
+# setup.php y los archivos de configuración NUNCA se distribuyen.
 mkdir -p release/site/api
-cp server/api/index.php release/site/api/index.php
+cp server/api/project_controls_history.php server/api/project_controls_policy.php server/api/project_request_plan.php server/api/project_requests_policy.php server/api/project_requests.php server/api/automation_policy.php server/api/governance.php server/api/governance_policy.php server/api/index.php server/api/cells_v12.php server/api/initiative_details_v12.php server/api/strategy_v12.php server/api/project_strategy_v12.php release/site/api/
 
 # Identificador de versión (sin datos sensibles) para verificar la publicación.
 COMMIT="$(git rev-parse HEAD 2>/dev/null || echo desconocido)"
@@ -51,3 +52,4 @@ bash deploy/check-package.sh release/site
 tar -C release/site -czf "release/processone-${RELEASE_ID}.tar.gz" .
 ( cd release && sha256sum "processone-${RELEASE_ID}.tar.gz" > "processone-${RELEASE_ID}.tar.gz.sha256" )
 echo "Paquete listo: release/processone-${RELEASE_ID}.tar.gz"
+

@@ -1,0 +1,16 @@
+import {describe,it,expect} from 'vitest';
+import {validateWorkspace} from './integralValidation';
+import {DEMO_WORKSPACE} from '../data/demo';
+import {createEmptyWorkspace} from '../data/storage';
+const fixture=()=>structuredClone(DEMO_WORKSPACE);
+describe('validación integral',()=>{
+ it('no inventa hallazgos para un espacio vacío',()=>expect(validateWorkspace(createEmptyWorkspace())).toEqual([]));
+ it('no modifica el espacio y produce el mismo diagnóstico',()=>{const w=fixture(),before=JSON.stringify(w);expect(validateWorkspace(w)).toEqual(validateWorkspace(w));expect(JSON.stringify(w)).toBe(before)});
+ it('detecta fechas imposibles e intervalos invertidos',()=>{const w=fixture();w.projects[0].startDate='2026-02-30';expect(validateWorkspace(w).some(f=>f.message==='Fechas incompletas o inválidas.')).toBe(true);w.projects[0].startDate='2026-12-20';w.projects[0].dueDate='2026-12-01';expect(validateWorkspace(w).some(f=>f.message.includes('precede'))).toBe(true)});
+ it('detecta la etapa de otro proyecto y responsables inexistentes',()=>{const w=fixture();w.tasks[0].stageId=w.stages.find(s=>s.projectId!==w.tasks[0].projectId)!.id;w.tasks[0].assigneeId='missing';const f=validateWorkspace(w);expect(f.some(x=>x.message.includes('inconsistente'))).toBe(true);expect(f.some(x=>x.entity===w.tasks[0].title&&x.area==='Responsables')).toBe(true)});
+ it('detecta ciclos y referencias ausentes sin bloquear el diagnóstico',()=>{const w=fixture();w.tasks[0].blockedByTaskIds=[w.tasks[1].id];w.tasks[1].blockedByTaskIds=[w.tasks[0].id,'missing'];const f=validateWorkspace(w);expect(f.some(x=>x.message.includes('Ciclo'))).toBe(true);expect(f.some(x=>x.message.includes('Dependencia inexistente'))).toBe(true)});
+ it('permite dependencias compartidas sin confundirlas con ciclos',()=>{const w=fixture();w.tasks.forEach(t=>t.blockedByTaskIds=[]);w.tasks[0].blockedByTaskIds=[w.tasks[1].id,w.tasks[2].id];w.tasks[1].blockedByTaskIds=[w.tasks[2].id];expect(validateWorkspace(w).some(x=>x.message.includes('Ciclo'))).toBe(false)});
+ it('detecta cierre inconsistente, avance inválido y horas negativas',()=>{const w=fixture();w.projects[0].status='Completado';w.stages[0].status='Completada';w.stages[0].progress=45;w.tasks[0].actualHours=-1;const f=validateWorkspace(w);expect(f.some(x=>x.message.includes('Proyecto completado'))).toBe(true);expect(f.some(x=>x.message.includes('estado y el avance'))).toBe(true);expect(f.some(x=>x.message.includes('Horas negativas'))).toBe(true)});
+ it('detecta IDs duplicados e indicadores huérfanos con valores inválidos',()=>{const w=fixture();w.projects.push({...w.projects[0]});w.indicators=[{id:'k',projectId:'missing',name:'KPI',target:NaN,actual:1,unit:'',direction:'decrease',updatedAt:''}];const f=validateWorkspace(w);expect(f.some(x=>x.message.includes('duplicado'))).toBe(true);expect(f.some(x=>x.message.includes('Indicador sin proyecto'))).toBe(true);expect(f.some(x=>x.message.includes('Meta, medición'))).toBe(true)});
+ it('no rechaza metas negativas válidas por su signo',()=>{const w=fixture();w.indicators=[{id:'k',projectId:w.projects[0].id,name:'Variación',target:-10,actual:-2,unit:'%',direction:'decrease',updatedAt:''}];expect(validateWorkspace(w).some(x=>x.entity==='Variación')).toBe(false)});
+});

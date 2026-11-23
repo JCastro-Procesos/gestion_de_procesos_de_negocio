@@ -1,0 +1,7 @@
+<?php
+declare(strict_types=1);
+if($method!=='GET')reply(405,['error'=>'Solo consulta']);
+if(level($role)<3)reply(403,['error'=>'Historial disponible para Gerencia, Dirección y Administración']);
+$id=(string)($_GET['projectId']??'');if($id===''||strlen($id)>100)reply(400,['error'=>'Proyecto inválido']);
+try{$records=[];foreach($db->query('SELECT v.*,u.name actor_name FROM po_project_control_versions v LEFT JOIN po_users u ON u.id=v.actor_id ORDER BY workspace_revision DESC LIMIT 200')->fetchAll() as $row){$c=json_decode($row['payload'],true,512,JSON_THROW_ON_ERROR);$budget=$c['budgets'][$id]??null;$plan=$c['planning'][$id]??null;$benefits=array_values(array_filter($c['benefits']??[],fn($b)=>($b['projectId']??'')===$id));if(!$budget&&!$plan&&!$benefits)continue;$records[]=['revision'=>(int)$row['workspace_revision'],'actor'=>$row['actor_name']??'Usuario','at'=>$row['created_at'],'approved'=>$budget['approved']??null,'hourRate'=>$budget['hourRate']??null,'paid'=>array_sum(array_column(array_filter($budget['expenses']??[],fn($e)=>$e['type']==='Pagado'),'amount')),'committed'=>array_sum(array_column(array_filter($budget['expenses']??[],fn($e)=>$e['type']==='Comprometido'),'amount')),'baselineActivities'=>count($plan['baseline']??[]),'benefits'=>count($benefits)];}reply(200,['versions'=>$records]);}
+catch(Throwable $e){reply(503,['error'=>'No se pudo consultar el historial. Verifica la migración de controles compartidos.']);}

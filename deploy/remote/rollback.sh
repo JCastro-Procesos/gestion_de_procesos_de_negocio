@@ -34,7 +34,8 @@ copy() { if command -v rsync >/dev/null 2>&1; then rsync -a --checksum "$@"; els
 done
 copy "$TMP/index.html" "$PO_TARGET/index.html"
 # Los archivos extraídos heredan permisos privados (umask 077): el servidor web debe poder leerlos.
-find "$PO_TARGET" -type d -exec chmod 755 {} + ; find "$PO_TARGET" -type f -exec chmod 644 {} +
+( cd "$TMP" && find . -type d -print0 ) | while IFS= read -r -d "" d; do chmod 755 "$PO_TARGET/$d"; done
+( cd "$TMP" && find . -type f -print0 ) | while IFS= read -r -d "" f; do chmod 644 "$PO_TARGET/$f"; done
 # Si el respaldo no traía version.json (versiones previas a este flujo), dejar constancia de la reversión.
 if [ ! -f "$TMP/version.json" ]; then
   printf '{"release":"restaurado-%s","restored_at":"%s"}\n' "${BACKUP%.tar.gz}" "$STAMP" > "$PO_TARGET/version.json"

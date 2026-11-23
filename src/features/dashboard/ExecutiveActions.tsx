@@ -2,7 +2,7 @@ import type {Workspace} from '../../domain/model';
 import {projectProgress,projectIsAtRisk,dueDateOverdue} from '../../domain/metrics';
 type Props={workspace:Workspace;onOpenProject:(id:string)=>void;onNavigate:(page:string)=>void};
 export function ExecutiveActions({workspace,onOpenProject,onNavigate}:Props){
- const alerts=workspace.projects.map(p=>({p,progress:projectProgress(p.id,workspace.stages),overdue:dueDateOverdue(p.dueDate,p.status),risk:projectIsAtRisk(p,workspace.stages,workspace.raids)})).filter(x=>x.risk||x.overdue).sort((a,b)=>Number(b.overdue)-Number(a.overdue));
+ const alerts=workspace.projects.map(p=>({p,progress:projectProgress(p.id, workspace.stages, p.planType),overdue:dueDateOverdue(p.dueDate,p.status),risk:projectIsAtRisk(p,workspace.stages,workspace.raids)})).filter(x=>x.risk||x.overdue).sort((a,b)=>Number(b.overdue)-Number(a.overdue));
  const tasks=workspace.tasks.filter(t=>t.status!=='Completado'&&!!t.dueDate&&t.dueDate<new Date().toISOString().slice(0,10)).sort((a,b)=>a.dueDate.localeCompare(b.dueDate));
  return <section className="itm-planning-panel" aria-label="Acciones ejecutivas prioritarias">
  <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:12,flexWrap:'wrap'}}><div><h2>Centro de decisiones</h2><p>Alertas priorizadas para actuar, no solo consultar indicadores.</p></div><button className="top-add-button" onClick={()=>onNavigate('raid')}>Revisar RAID</button></div>

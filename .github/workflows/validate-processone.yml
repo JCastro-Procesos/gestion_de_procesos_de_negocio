@@ -20,11 +20,11 @@ jobs:
   quality:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
-      - uses: pnpm/action-setup@v5
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
         with:
           version: 11.25.0
-      - uses: actions/setup-node@v5
+      - uses: actions/setup-node@v4
         with:
           node-version: '22'
           cache: pnpm
@@ -37,17 +37,83 @@ jobs:
         run: pnpm exec vite build --config vite.hostinger.config.ts
       - name: Validar sintaxis PHP
         run: |
+          php -l server/api/project_controls_history.php
+          php -l server/api/project_controls_policy.php
+          php -l server/api/project_request_plan.php
+          php -l server/api/project_requests_policy.php
+          php -l server/api/project_requests.php
+          php server/tests/project_trust_policy_test.php
+          php -l server/api/automation_policy.php
+          php server/tests/automation_policy_test.php
+          php -l server/api/governance.php
+          php -l server/api/governance_policy.php
+          php server/tests/governance_policy_test.php
           php -l server/api/index.php
+          php -l server/api/cells_v12.php
+          php -l server/api/initiative_details_v12.php
+          php -l server/api/strategy_v12.php
+          php -l server/api/project_strategy_v12.php
           php -l server/api/setup.php
       - name: Validar scripts de despliegue
         run: |
           for f in deploy/*.sh deploy/remote/*.sh; do bash -n "$f"; done
           shellcheck -S error deploy/*.sh deploy/remote/*.sh
+      - name: Verificar copia de módulos API en servidor
+        run: python3 deploy/tests/test_api_publication.py
       - name: Armar y verificar paquete (exclusiones y secretos)
         run: bash deploy/build-package.sh "validacion-${GITHUB_RUN_NUMBER}"
       - name: Guardar compilación para revisión (no publicar)
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v4
         with:
           name: processone-preview-sin-publicar
           path: dist-hostinger/
           retention-days: 7
+
+
+  governance-integration:
+    runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mariadb:11.4
+        env:
+          MARIADB_ROOT_PASSWORD: processone-test-only
+          MARIADB_DATABASE: processone_governance_test
+        ports:
+          - 33306:3306
+        options: >-
+          --health-cmd="healthcheck.sh --connect --innodb_initialized"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Probar ciclo de Gobierno en una base aislada
+        env:
+          GOV_TEST_DSN: mysql:host=127.0.0.1;port=33306;dbname=processone_governance_test;charset=utf8mb4
+          GOV_TEST_USER: root
+          GOV_TEST_PASSWORD: processone-test-only
+        run: python3 server/tests/governance_integration.py
+
+  project-trust-integration:
+    runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mariadb:11.4
+        env:
+          MARIADB_ROOT_PASSWORD: processone-test-only
+          MARIADB_DATABASE: processone_trust_test
+        ports:
+          - 33306:3306
+        options: >-
+          --health-cmd="healthcheck.sh --connect --innodb_initialized"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Probar solicitudes y aprobación atómica en base aislada
+        env:
+          TRUST_TEST_DSN: mysql:host=127.0.0.1;port=33306;dbname=processone_trust_test;charset=utf8mb4
+          TRUST_TEST_USER: root
+          TRUST_TEST_PASSWORD: processone-test-only
+        run: python3 server/tests/project_trust_integration.py
