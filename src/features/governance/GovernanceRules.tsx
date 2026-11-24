@@ -22,7 +22,7 @@ export function GovernanceRules({workspace}:{workspace:Workspace}){
  return <section className="itm-planning-panel"><h2>Reglas de negocio y matriz RACI</h2><p>Propuesta basada exclusivamente en los cinco perfiles de ProcessOne: Administrador, Dirección, Gerencia, Especialista e Ingeniero. Las asignaciones RACI requieren validación antes de declararse normativa.</p>
  <div style={{display:'flex',gap:14,flexWrap:'wrap',marginBottom:12}}><strong>Proyectos sin responsable: {unowned.length}</strong><strong>RAID críticos incompletos: {critical.length}</strong></div>
  <h3>Reglas de negocio</h3><div style={{overflowX:'auto'}}><table className="data-table"><thead><tr><th>Código</th><th>Regla</th><th>Condición</th><th>Responsable</th></tr></thead><tbody>{RULES.map(r=><tr key={r.id}><td>{r.id}</td><td>{r.title}</td><td>{r.condition}</td><td>{r.owner}</td></tr>)}</tbody></table></div>
- <h3>Matriz RACI propuesta</h3><p style={{fontSize:12}}>R = ejecuta · A = responde por el resultado · C = consultado · I = informado. Los perfiles RACI describen responsabilidades funcionales; los permisos de acceso se controlan por separado.</p>
+ <h3>Matriz RACI propuesta</h3><p style={{fontSize:13}}>R = ejecuta · A = responde por el resultado · C = consultado · I = informado. Los perfiles RACI describen responsabilidades funcionales; los permisos de acceso se controlan por separado.</p>
  <div style={{overflowX:'auto'}}><table className="data-table"><thead><tr><th>Actividad</th><th>R</th><th>A</th><th>C</th><th>I</th></tr></thead><tbody>{RACI.map(r=><tr key={r.activity}><td>{r.activity}</td><td>{r.R}</td><td>{r.A}</td><td>{r.C}</td><td>{r.I}</td></tr>)}</tbody></table></div>
  </section>;
 }

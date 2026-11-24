@@ -8,6 +8,7 @@ import {officialProjectProgress} from '../../domain/projectProgress';
 import {ALL_FACETS,filterProjects,kindInfo,macroOf,projectKind,PROJECT_KINDS,summarize,UNLINKED_META,type Facets,type WorkItem} from '../../domain/portfolio';
 import {useMacroInitiatives} from '../../data/useMacroInitiatives';
 import {loadFacets,saveFacets} from '../../data/facetStore';
+import {LiveClock} from '../../components/pd/LiveClock';
 import {Bar,Empty,KindBadge,MacroTag,MethodTag,Ring,Segmented,Stat,shortDate} from '../../components/pd';
 import {Button,TrafficBadge} from '../../components/ui';
 import {ExecutiveActions} from './ExecutiveActions';
@@ -56,8 +57,9 @@ export function Dashboard({workspace,onOpenProject,onNavigate,viewerName,viewerR
   const openItem=(i:WorkItem)=>onOpenProject(i.projectId);
 
   return <div className="pd-page">
-    <section className="pd-animal-hero" style={{gridTemplateColumns:'1fr'}}>
+    <section className="pd-animal-hero pd-hero-clock">
       <div><span className="pd-eyebrow" style={{color:'#bfe0ff'}}>PANEL EJECUTIVO</span><h2 style={{margin:'4px 0 0',fontSize:26}}>Hola, {first}</h2><p>{viewerRole?viewerRole+' · ':''}{all.projects} proyectos · {all.average}% de avance promedio · {all.openItems} pendientes{all.overdueItems?` · ${all.overdueItems} vencidos`:''}</p></div>
+      <LiveClock/>
     </section>
 
     <div className="pd-toolbar">
@@ -97,7 +99,7 @@ export function Dashboard({workspace,onOpenProject,onNavigate,viewerName,viewerR
       </section>
       <section className="pd-card"><header><h3>¿En qué etapa están?</h3><p>Proyectos por etapa actual</p></header>
         <div className="pd-stages pd-stages-wide">{[...projectStageNames,'Cierre'].map((n,i)=><div key={n} className={`pd-stage-cell ${sel.byCurrentStage[i]?'has':''}`}><span>{n}</span><b>{sel.byCurrentStage[i]}</b></div>)}</div>
-        <div style={{display:'grid',gap:6,marginTop:12}}><span className="pd-sub" style={{margin:0}}>Actividades por estado</span>{(['Por iniciar','En curso','En revisión','Bloqueada','Completada'] as const).map(s=>{const total=Math.max(1,sel.activities);return <div key={s} style={{display:'grid',gridTemplateColumns:'92px 1fr 30px',gap:8,alignItems:'center',fontSize:12,color:'#51607d'}}><span>{s}</span><Bar value={(sel.stageCounts[s]/total)*100} color={s==='Completada'?'#14804a':s==='Bloqueada'?'#c4314b':'#1565c0'}/><b>{sel.stageCounts[s]}</b></div>})}</div>
+        <div style={{display:'grid',gap:6,marginTop:12}}><span className="pd-sub" style={{margin:0}}>Actividades por estado</span>{(['Por iniciar','En curso','En revisión','Bloqueada','Completada'] as const).map(s=>{const total=Math.max(1,sel.activities);return <div key={s} style={{display:'grid',gridTemplateColumns:'92px 1fr 30px',gap:8,alignItems:'center',fontSize:13,color:'#51607d'}}><span>{s}</span><Bar value={(sel.stageCounts[s]/total)*100} color={s==='Completada'?'#14804a':s==='Bloqueada'?'#c4314b':'#1565c0'}/><b>{sel.stageCounts[s]}</b></div>})}</div>
       </section>
     </div>
 
@@ -113,7 +115,7 @@ export function Dashboard({workspace,onOpenProject,onNavigate,viewerName,viewerR
         <div style={{display:'flex',alignItems:'center',gap:16,flexWrap:'wrap'}}><div style={{width:150,height:150}}><ResponsiveContainer><PieChart><Pie data={chartData} dataKey="value" nameKey="name" innerRadius={46} outerRadius={66} paddingAngle={3} stroke="none">{chartData.map((d,i)=><Cell key={d.name} fill={SIGNAL[i]}/>)}</Pie><Tooltip/></PieChart></ResponsiveContainer></div><div style={{display:'grid',gap:6,fontSize:13}}>{chartData.map((d,i)=><span key={d.name} style={{display:'flex',gap:8,alignItems:'center'}}><i style={{width:10,height:10,borderRadius:3,background:SIGNAL[i]}}/>{d.name}: <b>{d.value}</b></span>)}</div></div>
       </section>
       <section className="pd-card"><header><h3>Carga del equipo</h3><p>Horas abiertas frente a capacidad semanal</p></header>
-        <div style={{height:170}}><ResponsiveContainer><BarChart data={workload} margin={{top:4,right:8,left:-20,bottom:0}}><CartesianGrid stroke="#edf1f6" strokeDasharray="3 3" vertical={false}/><XAxis dataKey="name" tick={{fill:'#51607d',fontSize:12}} axisLine={false} tickLine={false}/><YAxis tick={{fill:'#51607d',fontSize:12}} axisLine={false} tickLine={false}/><Tooltip/><RBar dataKey="available" name="Capacidad (h)" fill="#dfe7f5" radius={[5,5,0,0]}/><RBar dataKey="hours" name="Horas abiertas" fill="#1565c0" radius={[5,5,0,0]}/></BarChart></ResponsiveContainer></div>
+        <div style={{height:170}}><ResponsiveContainer><BarChart data={workload} margin={{top:4,right:8,left:-20,bottom:0}}><CartesianGrid stroke="#edf1f6" strokeDasharray="3 3" vertical={false}/><XAxis dataKey="name" tick={{fill:'#51607d',fontSize:13}} axisLine={false} tickLine={false}/><YAxis tick={{fill:'#51607d',fontSize:13}} axisLine={false} tickLine={false}/><Tooltip/><RBar dataKey="available" name="Capacidad (h)" fill="#dfe7f5" radius={[5,5,0,0]}/><RBar dataKey="hours" name="Horas abiertas" fill="#1565c0" radius={[5,5,0,0]}/></BarChart></ResponsiveContainer></div>
       </section>
     </div>
 

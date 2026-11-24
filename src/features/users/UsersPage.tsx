@@ -46,7 +46,7 @@ export function UsersPage(){
   <small>La contraseña temporal vence en 48 horas. Si el correo falla, se mostrará aquí para compartirla manualmente.</small>
  </form>}
  <h3>Directorio</h3>{canMonitor&&<small style={{color:'#7d8ba2'}}>Se actualiza cada minuto. “En línea” = actividad en los últimos 3 minutos.</small>}<div style={{display:'grid',gap:9}}>{users.map(u=><div key={u.id} style={{border:'1px solid #e0e7f3',padding:12,borderRadius:10,display:'flex',justifyContent:'space-between',gap:10,flexWrap:'wrap'}}>
- <div style={{display:'flex',gap:10,alignItems:'center'}}><AnimalAvatar emoji={u.avatar_animal} name={u.name} size={38}/><div><strong>{u.name}</strong>{canMonitor&&<><div style={{fontSize:12}}>{u.email}{u.role?' · '+ROLE_LABELS[u.role]:''}</div><AccountStatus u={u}/></>}</div></div>
+ <div style={{display:'flex',gap:10,alignItems:'center'}}><AnimalAvatar emoji={u.avatar_animal} name={u.name} size={38}/><div><strong>{u.name}</strong>{canMonitor&&<><div style={{fontSize:13}}>{u.email}{u.role?' · '+ROLE_LABELS[u.role]:''}</div><AccountStatus u={u}/></>}</div></div>
  {isAdmin&&u.role!=='admin'&&<div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
  <button onClick={()=>void edit(u)}>Editar</button><button onClick={()=>void toggle(u)}>{u.active?'Desactivar':'Activar'}</button>
  {!!u.active&&<button onClick={()=>void resend(u)}>{u.invitation_pending?'Reenviar invitación':'Restablecer acceso'}</button>}</div>}
