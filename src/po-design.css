@@ -234,3 +234,6 @@
 @media(min-width:1700px){.po-topbar-help span{display:inline}.po-topbar-help{width:auto;padding:0 12px}.last-sync small{display:block}}
 .brand-copy{min-width:0;flex:1}
 .brand-copy small{white-space:normal!important;font-size:9.5px!important;letter-spacing:.06em!important;line-height:1.3}
+
+.po-topbar-help span{display:inline}.po-topbar-help{width:auto;padding:0 12px}
+.po-help-anchor{top:76px;bottom:auto}.po-help-panel{margin-bottom:0;max-height:calc(100vh - 110px)}

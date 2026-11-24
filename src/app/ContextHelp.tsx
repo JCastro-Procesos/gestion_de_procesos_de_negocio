@@ -1,5 +1,5 @@
 import {useEffect,useState} from 'react';
-import {MessageCircle,X,Search} from 'lucide-react';
+import {X,Search} from 'lucide-react';
 export const HELP:Record<string,{title:string;summary:string;steps:string[]}>={
  dashboard:{title:'Panel ejecutivo',summary:'Resumen de todos los proyectos: avance, siguientes pasos y alertas.',steps:['Elige "Agrupar por" macroiniciativa o libro de trabajo.','Haz clic en un grupo para filtrar el resto del panel.','Revisa los pasos críticos y abre el proyecto para atenderlos.']},
  perfil:{title:'Mi perfil',summary:'Tu nombre y tu animal de perfil.',steps:['Cambia tu nombre si lo necesitas.','Elige tu animal.','Mueve a tu equipo en la zona del equipo.']},
@@ -31,5 +31,5 @@ export function ContextHelp({page,onNavigate}:{page:string;onNavigate:(page:stri
  <label className="po-help-search"><Search size={15}/><input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Buscar una función" aria-label="Buscar ayuda"/></label>
  {search?<div className="po-help-results">{entries.map(([id,t])=><button key={id} onClick={()=>{setSelected(id);setSearch('')}}>{t.title}</button>)}{entries.length===0&&<p>No encontramos resultados. Prueba otra palabra.</p>}</div>:<div className="po-help-body"><small>GUÍA CONTEXTUAL</small><h3>{topic.title}</h3><p>{topic.summary}</p><ol>{topic.steps.map(s=><li key={s}>{s}</li>)}</ol><button onClick={()=>{onNavigate(selected);setOpen(false)}}>Ir a esta sección →</button>{selected!==page&&<button onClick={()=>setSelected(page)}>Ayuda de la pantalla actual</button>}</div>}
  <footer>Ayuda integrada · No es un chat con IA.</footer></section>}
- <button className="po-help-fab" onClick={()=>setOpen(v=>!v)} aria-label={open?'Cerrar ayuda':'Abrir ayuda'} aria-expanded={open}>{open?<X size={20}/>:<MessageCircle size={20}/>} Ayuda</button></div>;
+</div>;
 }

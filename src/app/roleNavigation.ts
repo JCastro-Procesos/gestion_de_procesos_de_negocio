@@ -14,9 +14,9 @@ const ACCESS:Record<string,ProcessOneRole[]>={
  datos:['admin'],
  usuarios:['admin','direccion','gerencia'],
  auditoria:['admin'],
- automatizacion:['admin','direccion','gerencia','especialista','ingeniero'],
- validacion:['admin','direccion','gerencia','especialista','ingeniero'],
+ automatizacion:['admin','direccion','gerencia'],
+ validacion:['admin','direccion','gerencia','especialista'],
  integraciones:['admin']
 };
 export function canSeeModule(role:ProcessOneRole|undefined,page:string){return !!role&&!!ACCESS[page]?.includes(role)}
-export function defaultPageForRole(role:ProcessOneRole|undefined){return role==='ingeniero'?'mi-trabajo':'dashboard'}
+export function defaultPageForRole(role:ProcessOneRole|undefined){return role==='ingeniero'||role==='especialista'?'mi-trabajo':'dashboard'}
