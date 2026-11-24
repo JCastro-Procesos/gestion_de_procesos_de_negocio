@@ -12,6 +12,9 @@ describe('propuesta de macroiniciativas ITM',()=>{
    expect(p.profile.dependencies).toContain('Áreas involucradas');
   }
  });
+ it('cada macro trae KPIs predeterminados coherentes y sin cifras inventadas',()=>{
+  for(const p of ITM_MACRO_PROPOSALS){expect(p.kpis.length).toBe(3);for(const x of p.kpis){expect(x.baseline).toBeNull();expect(x.target).toBeNull();expect(x.name&&x.unit&&x.formula).toBeTruthy();expect(['increase','decrease']).toContain(x.direction)}expect(new Set(p.kpis.map(x=>x.id)).size).toBe(3)}
+ });
  it('respeta los límites de longitud del servidor',()=>{
   for(const p of ITM_MACRO_PROPOSALS){expect(p.title.length).toBeLessThanOrEqual(190);expect(p.profile.department.length).toBeLessThanOrEqual(120);expect(p.profile.dependencies.length).toBeLessThanOrEqual(2000);expect(p.profile.scopeText.length).toBeLessThanOrEqual(5000)}
  });

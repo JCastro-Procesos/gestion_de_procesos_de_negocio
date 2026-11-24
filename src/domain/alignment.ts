@@ -5,7 +5,7 @@ import {deriveStageFromActivities} from './activityProgress';
 export interface PlanActivity {id:string;title:string;deliverable:string;acceptanceCriteria:string;stageOrder:number;estimatedDays:number;suggestedRole:string}
 export interface PlanKpi {id:string;name:string;unit:string;direction:'increase'|'decrease';baseline:number|null;target:number|null;frequency:string;formula:string;source:string}
 export interface WorkMethod {id:number;name:string;description:string;version:number;outputs:string[];activities:PlanActivity[];kpis:PlanKpi[]}
-export interface AlignmentCatalog {version:1;methodologies:WorkMethod[];macroMethodologyIds?:Record<string,number[]>;macroActivities:Record<string,PlanActivity[]>}
+export interface AlignmentCatalog {version:1;methodologies:WorkMethod[];macroMethodologyIds?:Record<string,number[]>;macroActivities:Record<string,PlanActivity[]>;/** Definiciones de KPI predeterminadas por macroiniciativa (sin cifras: la línea base y la meta se registran en Indicadores). */macroKpis?:Record<string,PlanKpi[]>}
 export const VALIDATED_CONTENT:Record<number,string[]>={
  1:['Inventario / Catálogo Maestro de Procesos','Arquitectura y taxonomía de procesos','Dueños de proceso','Matriz Corporativo vs. UDN','RACI de procesos','Evaluación de madurez de procesos','KPIs asociados a procesos','Control de versiones y cambios'],
  2:['Registro AS-IS','Diseño TO-BE','Diagramas BPMN','Identificación de oportunidades de mejora','Matriz de priorización','Requerimientos funcionales','Matriz de impactos','Riesgos y controles del proceso','Beneficios esperados y obtenidos','Registro de mejoras implementadas'],
