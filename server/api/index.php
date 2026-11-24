@@ -253,9 +253,10 @@ if($action==='workspace' && $method==='PUT'){
   if(!is_array($p)||empty($p['id'])||isset($priorProjectIds[(string)$p['id']]))continue;
   if(level($role)<3){$db->rollBack();reply(403,['error'=>'Solicita la aprobación de Gerencia, Dirección o Administración para crear un proyecto']);}
   $iid=$p['initiativeId']??null;$mid=$p['methodologyId']??null;
-  if(!is_numeric($iid)||(int)$iid<1||!is_numeric($mid)||(int)$mid<1||(int)$mid>5||trim((string)($p['area']??''))===''){$db->rollBack();reply(400,['error'=>'Los proyectos nuevos requieren macroiniciativa principal, metodología y área cliente']);}
-  $allowed=$payload['alignmentCatalog']['macroMethodologyIds'][(string)$iid]??[];
-  if($allowed&&!in_array((int)$mid,$allowed,true)){$db->rollBack();reply(400,['error'=>'La metodología del proyecto no está vinculada a su macroiniciativa']);}
+  $hasMacro=is_numeric($iid)&&(int)$iid>=1;
+  if(!is_numeric($mid)||(int)$mid<0||(int)$mid>5||($hasMacro&&(int)$mid<1)||trim((string)($p['area']??''))===''){$db->rollBack();reply(400,['error'=>'Los proyectos nuevos requieren área cliente; si pertenecen a una macroiniciativa también requieren metodología (0 = sin metodología solo en proyectos sin macroiniciativa)']);}
+  $allowed=$hasMacro?($payload['alignmentCatalog']['macroMethodologyIds'][(string)(int)$iid]??[]):[];
+  if($hasMacro&&$allowed&&!in_array((int)$mid,$allowed,true)){$db->rollBack();reply(400,['error'=>'La metodología del proyecto no está vinculada a su macroiniciativa']);}
  }
  $json=json_encode($payload,JSON_UNESCAPED_UNICODE|JSON_THROW_ON_ERROR);if(strlen($json)>1500000){$db->rollBack();reply(413,['error'=>'Espacio demasiado grande']);}
  $sync=$db->prepare('INSERT INTO po_projects(id,name,description,status,payload) VALUES (?,?,?,?,?) ON DUPLICATE KEY UPDATE name=VALUES(name),description=VALUES(description),status=VALUES(status),payload=VALUES(payload)');
